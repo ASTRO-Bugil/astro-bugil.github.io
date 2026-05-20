@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CanSat 데이터 시각화</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">CS</div>
+    <div>
+      <h1>CanSat Visualizer</h1>
+      <p>캔 위성 측정 데이터 분석 대시보드</p>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-label" id="status-label">NO DATA</span>
+    </div>
+  </header>
+
+  <!-- UPLOAD -->
+  <div id="upload-zone">
+    <input type="file" id="file-input" accept=".csv,.txt,.tsv">
+    <i class="fas fa-satellite"></i>
+    <h2>데이터 파일 업로드</h2>
+    <p>CSV / TXT / TSV 파일을 여기에 끌어다 놓거나 클릭하세요</p>
+    <p class="hint">[ CANSAT · TELEMETRY · SENSOR DATA ]</p>
+  </div>
+
+  <!-- COLUMN MAPPER -->
+  <div id="column-mapper">
+    <h3>⬡ 컬럼 매핑 — 어떤 열이 무엇을 의미하는지 지정하세요</h3>
+    <div class="map-grid" id="map-grid"></div>
+    <div class="mapper-actions">
+      <button class="btn btn-primary" id="apply-map-btn"><i class="fas fa-check"></i>적용 및 시각화</button>
+      <button class="btn btn-ghost" id="auto-map-btn"><i class="fas fa-magic"></i>자동 감지</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="stats-section">
+    <div class="section-title">MISSION SUMMARY</div>
+    <div class="stats-grid" id="stats-grid"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div id="charts-section">
+    <div class="section-title">TELEMETRY CHARTS</div>
+    <div class="charts-grid" id="charts-grid"></div>
+    <div class="section-title">ALTITUDE PROFILE</div>
+    <div class="chart-card" id="alt-chart-card" style="display:none; margin-bottom: 28px;">
+      <h4>고도 프로파일</h4>
+      <div class="chart-wrap">
+        <canvas id="altChart" role="img" aria-label="고도 변화 그래프"></canvas>
+      </div>
+    </div>
+    <div class="section-title">CORRELATION</div>
+    <div class="charts-grid" id="corr-grid"></div>
+  </div>
+
+  <!-- TABLE -->
+  <div id="table-section">
+    <div class="section-title">RAW DATA TABLE</div>
+    <div class="table-controls">
+      <input type="text" id="search-input" placeholder="데이터 검색...">
+      <span class="page-info" id="page-info"></span>
+      <button class="btn btn-ghost" id="export-csv-btn">
+        <i class="fas fa-download"></i> CSV 내보내기
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table id="data-table">
+        <thead id="tbl-head"></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+    <div class="paginate">
+      <button id="prev-btn">이전</button>
+      <span id="page-num" style="color: var(--muted); font-size: 13px;"></span>
+      <button id="next-btn">다음</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
