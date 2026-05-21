@@ -47,11 +47,11 @@
     display: flex; align-items: center; gap: 8px;
   }
 
-  .logo-dot {
-    width: 8px; height: 8px;
-    background: var(--blue);
-    border-radius: 50%;
-    display: inline-block;
+  /* 네비게이션 작은 로고 */
+  .nav-logo-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
   }
 
   .nav-links {
@@ -88,11 +88,12 @@
     justify-content: center;
   }
 
-.hero-logo img {
+  /* 메인 로고 크기 및 위치 조정 */
+  .hero-logo img {
     width: 580px;
     height: 580px;
     object-fit: contain;
-    transform: translateX(-100px); /* 마이너스 값을 주어 왼쪽으로 이동 (필요에 따라 숫자 조절) */
+    transform: translateX(-100px); 
   }
 
   .hero-tag {
@@ -324,6 +325,7 @@
 
   .footer-links a:hover { color: var(--ink); }
 
+  /* 모바일 반응형 조정 */
   @media (max-width: 700px) {
     .hero {
       flex-direction: column-reverse;
@@ -331,8 +333,9 @@
       padding-top: 48px;
     }
     .hero-logo img {
-      width: 160px;
-      height: 160px;
+      width: 200px;
+      height: 200px;
+      transform: translateX(0); /* 모바일에서는 이동 효과 해제 */
     }
   }
 
