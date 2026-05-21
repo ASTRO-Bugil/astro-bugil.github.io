@@ -3,93 +3,458 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CanSat 데이터 시각화</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="style.css">
+<title>ASTRO - Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --blue-mid: #dbeafe;
+    --ink: #1e293b;
+    --gray: #64748b;
+    --gray-light: #f1f5f9;
+    --border: #e2e8f0;
+    --white: #ffffff;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6%;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--white);
+    z-index: 10;
+  }
+
+  .logo {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--ink);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--blue);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .nav-links {
+    display: flex; gap: 2rem; list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.875rem;
+    color: var(--gray);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  /* HERO */
+  .hero {
+    padding: 80px 6% 60px;
+    max-width: 680px;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    background: var(--blue-light);
+    color: var(--blue);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+    color: var(--gray);
+    max-width: 480px;
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-family: inherit;
+  }
+
+  .btn-blue {
+    background: var(--blue);
+    color: var(--white);
+  }
+
+  .btn-blue:hover { background: #2563eb; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gray);
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover { background: var(--gray-light); color: var(--ink); }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 6%; }
+
+  /* SECTION */
+  section { padding: 60px 6%; }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+
+  .sub {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+  }
+
+  /* ACTIVITIES */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: var(--white);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--blue);
+    box-shadow: 0 2px 12px rgba(59,130,246,0.1);
+  }
+
+  .card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--ink);
+  }
+
+  .card p {
+    font-size: 0.825rem;
+    color: var(--gray);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* NOTICE */
+  .notice-list {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .notice-item {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--ink);
+    transition: background 0.15s;
+  }
+
+  .notice-item:last-child { border-bottom: none; }
+  .notice-item:hover { background: var(--gray-light); }
+
+  .notice-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: var(--blue-mid);
+    color: var(--blue);
+  }
+
+  .notice-badge.new {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .notice-title {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .notice-date {
+    font-size: 0.78rem;
+    color: var(--gray);
+    flex-shrink: 0;
+  }
+
+  /* MEMBERS */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .member-card {
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .member-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    margin: 0 auto 0.75rem;
+  }
+
+  .member-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+
+  .member-role {
+    font-size: 0.75rem;
+    color: var(--gray);
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 2rem 6%;
+    border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 1rem;
+  }
+
+  footer p { font-size: 0.8rem; color: var(--gray); }
+
+  .footer-links { display: flex; gap: 1.5rem; }
+
+  .footer-links a {
+    font-size: 0.8rem;
+    color: var(--gray);
+    text-decoration: none;
+  }
+
+  .footer-links a:hover { color: var(--ink); }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .hero h1 { font-size: 1.8rem; }
+  }
+</style>
 </head>
 <body>
-<div class="wrap">
 
-  <!-- HEADER -->
-  <header>
-    <div class="logo">CS</div>
-    <div>
-      <h1>CanSat Visualizer</h1>
-      <p>캔 위성 측정 데이터 분석 대시보드</p>
-    </div>
-    <div class="header-right">
-      <div class="status-dot" id="status-dot"></div>
-      <span class="status-label" id="status-label">NO DATA</span>
-    </div>
-  </header>
+<nav>
+  <a href="#" class="logo">
+    <span class="logo-dot"></span>
+    코드클럽
+  </a>
+  <ul class="nav-links">
+    <li><a href="#activities">활동</a></li>
+    <li><a href="#notice">공지사항</a></li>
+    <li><a href="#members">부원 소개</a></li>
+    <li><a href="#join">가입 신청</a></li>
+  </ul>
+</nav>
 
-  <!-- UPLOAD -->
-  <div id="upload-zone">
-    <input type="file" id="file-input" accept=".csv,.txt,.tsv">
-    <i class="fas fa-satellite"></i>
-    <h2>데이터 파일 업로드</h2>
-    <p>CSV / TXT / TSV 파일을 여기에 끌어다 놓거나 클릭하세요</p>
-    <p class="hint">[ CANSAT · TELEMETRY · SENSOR DATA ]</p>
+<div class="hero">
+  <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
+  <h1>Bugil Academy<br>ASTRO 🚀</h1>
+  <p>20년 역사의 북일고등학교 최고의 공학 동아리입니다. 공학도를 꿈꾸는 열정적인 학생들이 모여 미래를 준비하는 배움의 공동체입니다.</p>
+  <div class="hero-btns">
+    <a href="#join" class="btn btn-blue">가입 신청하기</a>
+    <a href="#activities" class="btn btn-outline">활동 보기</a>
   </div>
-
-  <!-- COLUMN MAPPER -->
-  <div id="column-mapper">
-    <h3>⬡ 컬럼 매핑 — 어떤 열이 무엇을 의미하는지 지정하세요</h3>
-    <div class="map-grid" id="map-grid"></div>
-    <div class="mapper-actions">
-      <button class="btn btn-primary" id="apply-map-btn"><i class="fas fa-check"></i>적용 및 시각화</button>
-      <button class="btn btn-ghost" id="auto-map-btn"><i class="fas fa-magic"></i>자동 감지</button>
-    </div>
-  </div>
-
-  <!-- STATS -->
-  <div id="stats-section">
-    <div class="section-title">MISSION SUMMARY</div>
-    <div class="stats-grid" id="stats-grid"></div>
-  </div>
-
-  <!-- CHARTS -->
-  <div id="charts-section">
-    <div class="section-title">TELEMETRY CHARTS</div>
-    <div class="charts-grid" id="charts-grid"></div>
-    <div class="section-title">ALTITUDE PROFILE</div>
-    <div class="chart-card" id="alt-chart-card" style="display:none; margin-bottom: 28px;">
-      <h4>고도 프로파일</h4>
-      <div class="chart-wrap">
-        <canvas id="altChart" role="img" aria-label="고도 변화 그래프"></canvas>
-      </div>
-    </div>
-    <div class="section-title">CORRELATION</div>
-    <div class="charts-grid" id="corr-grid"></div>
-  </div>
-
-  <!-- TABLE -->
-  <div id="table-section">
-    <div class="section-title">RAW DATA TABLE</div>
-    <div class="table-controls">
-      <input type="text" id="search-input" placeholder="데이터 검색...">
-      <span class="page-info" id="page-info"></span>
-      <button class="btn btn-ghost" id="export-csv-btn">
-        <i class="fas fa-download"></i> CSV 내보내기
-      </button>
-    </div>
-    <div class="table-wrap">
-      <table id="data-table">
-        <thead id="tbl-head"></thead>
-        <tbody id="tbl-body"></tbody>
-      </table>
-    </div>
-    <div class="paginate">
-      <button id="prev-btn">이전</button>
-      <span id="page-num" style="color: var(--muted); font-size: 13px;"></span>
-      <button id="next-btn">다음</button>
-    </div>
-  </div>
-
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="main.js"></script>
+<hr class="divider">
+
+<section id="activities">
+  <p class="section-label">Activities</p>
+  <h2>이런 걸 해요</h2>
+  <p class="sub">매주 목요일 방과 후, 컴퓨터실에서 만나요.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">💻</span>
+      <h3>주간 스터디</h3>
+      <p>Python, 웹개발, 알고리즘 등 주제별로 함께 공부합니다. 수준별 그룹으로 나뉘어 진행해요.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🏆</span>
+      <h3>대회 참가</h3>
+      <p>정보올림피아드, 해커톤 등 각종 프로그래밍 대회에 팀을 꾸려 출전합니다.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🛠️</span>
+      <h3>프로젝트</h3>
+      <p>학기별로 팀 프로젝트를 진행합니다. 실제로 쓸 수 있는 앱이나 웹사이트를 만들어봐요.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🎤</span>
+      <h3>발표 & 공유</h3>
+      <p>만든 것들을 서로 발표하고 피드백을 나눕니다. 말하는 능력도 자연스럽게 길러져요.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="notice">
+  <p class="section-label">Notice</p>
+  <h2>공지사항</h2>
+  <p class="sub">최근 소식을 확인하세요.</p>
+  <div class="notice-list">
+    <a href="#" class="notice-item">
+      <span class="notice-badge new">NEW</span>
+      <span class="notice-title">2025 상반기 신입 부원 모집 안내</span>
+      <span class="notice-date">05.20</span>
+    </a>
+    <a href="#" class="notice-item">
+      <span class="notice-badge">공지</span>
+      <span class="notice-title">5월 정기 스터디 주제 변경 안내 (알고리즘 → 웹)</span>
+      <span class="notice-date">05.12</span>
+    </a>
+    <a href="#" class="notice-item">
+      <span class="notice-badge">결과</span>
+      <span class="notice-title">2025 교내 해커톤 코드클럽팀 우수상 수상 🎉</span>
+      <span class="notice-date">04.28</span>
+    </a>
+    <a href="#" class="notice-item">
+      <span class="notice-badge">공지</span>
+      <span class="notice-title">4월 정기 모임 장소 변경 — 2층 컴퓨터실 → 3층 멀티실</span>
+      <span class="notice-date">04.15</span>
+    </a>
+    <a href="#" class="notice-item">
+      <span class="notice-badge">공지</span>
+      <span class="notice-title">2024 연간 활동 결과 보고서 공유</span>
+      <span class="notice-date">03.02</span>
+    </a>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="members">
+  <p class="section-label">Members</p>
+  <h2>부원 소개</h2>
+  <p class="sub">현재 총 18명이 활동하고 있어요.</p>
+  <div class="members-grid">
+    <div class="member-card">
+      <div class="member-avatar" style="background:#dbeafe;">😎</div>
+      <p class="member-name">이지훈</p>
+      <p class="member-role">부장 · 3학년</p>
+    </div>
+    <div class="member-card">
+      <div class="member-avatar" style="background:#fce7f3;">🙂</div>
+      <p class="member-name">박소연</p>
+      <p class="member-role">부부장 · 3학년</p>
+    </div>
+    <div class="member-card">
+      <div class="member-avatar" style="background:#dcfce7;">🤓</div>
+      <p class="member-name">김도현</p>
+      <p class="member-role">총무 · 2학년</p>
+    </div>
+    <div class="member-card">
+      <div class="member-avatar" style="background:#fef9c3;">😄</div>
+      <p class="member-name">최유나</p>
+      <p class="member-role">2학년</p>
+    </div>
+    <div class="member-card">
+      <div class="member-avatar" style="background:#ede9fe;">🧑‍💻</div>
+      <p class="member-name">정민준</p>
+      <p class="member-role">1학년</p>
+    </div>
+    <div class="member-card">
+      <div class="member-avatar" style="background:#ffedd5;">👩‍💻</div>
+      <p class="member-name">한채원</p>
+      <p class="member-role">1학년</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
+  <p class="section-label">Join Us</p>
+  <h2>같이 해요! 👋</h2>
+  <p class="sub" style="margin-bottom: 1.5rem;">프로그래밍에 관심 있다면 누구든 환영합니다. 아래 구글폼으로 신청해주세요.</p>
+  <a href="#" class="btn btn-blue" style="font-size: 0.9rem; padding: 0.7rem 1.75rem;">가입 신청 폼 열기 →</a>
+  <p style="margin-top: 1.25rem; font-size: 0.8rem; color: var(--gray);">문의: 3학년 5반 이지훈 / 카카오톡 오픈채팅 "한빛코드클럽"</p>
+</section>
+
+<footer>
+  <p>© 2025 한빛고 코드클럽 · 지도교사: 오민서 선생님</p>
+  <div class="footer-links">
+    <a href="#">인스타그램</a>
+    <a href="#">깃허브</a>
+  </div>
+</footer>
+
 </body>
 </html>
