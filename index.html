@@ -70,7 +70,28 @@
   /* HERO */
   .hero {
     padding: 80px 6% 60px;
-    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+
+  .hero-text {
+    flex: 1;
+    max-width: 520px;
+  }
+
+  .hero-logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-logo img {
+    width: 240px;
+    height: 240px;
+    object-fit: contain;
   }
 
   .hero-tag {
@@ -302,6 +323,18 @@
 
   .footer-links a:hover { color: var(--ink); }
 
+  @media (max-width: 700px) {
+    .hero {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      padding-top: 48px;
+    }
+    .hero-logo img {
+      width: 160px;
+      height: 160px;
+    }
+  }
+
   @media (max-width: 600px) {
     .nav-links { display: none; }
     .hero h1 { font-size: 1.8rem; }
@@ -323,12 +356,17 @@
 </nav>
 
 <div class="hero">
-  <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
-  <h1>Bugil Academy<br>ASTRO 🚀</h1>
-  <p>20년 역사의 북일고등학교 최고의 공학 동아리입니다. 공학도를 꿈꾸는 열정적인 학생들이 모여 미래를 준비하는 배움의 공동체입니다.</p>
-  <div class="hero-btns">
-    <a href="#join" class="btn btn-blue">동아리 소개</a>
-    <a href="#activities" class="btn btn-outline">활동 보기</a>
+  <div class="hero-text">
+    <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
+    <h1>Bugil Academy<br>ASTRO 🚀</h1>
+    <p>20년 역사의 북일고등학교 최고의 공학 동아리입니다. 공학도를 꿈꾸는 열정적인 학생들이 모여 미래를 준비하는 배움의 공동체입니다.</p>
+    <div class="hero-btns">
+      <a href="#join" class="btn btn-blue">동아리 소개</a>
+      <a href="#activities" class="btn btn-outline">활동 보기</a>
+    </div>
+  </div>
+  <div class="hero-logo">
+    <img src="logo.png" alt="ASTRO 동아리 로고">
   </div>
 </div>
 
@@ -337,7 +375,7 @@
 <section id="activities">
   <p class="section-label">Activities</p>
   <h2>이런 걸 해요</h2>
-  <p class="sub"학술 교류 행사, 공학 실험 활동, 전산유체역학 CFD 프로그램 학습 등 다양한 활동을 진행합니다.</p>
+  <p class="sub">학술 교류 행사, 공학 실험 활동, 전산유체역학 CFD 프로그램 학습 등 다양한 활동을 진행합니다.</p>
   <div class="cards">
     <div class="card">
       <span class="card-icon">💻</span>
@@ -370,10 +408,9 @@
   <p class="sub">최근 소식을 확인하세요.</p>
   <div class="notice-list">
 
-   
-    </a>
   </div>
 </section>
+
 <hr class="divider">
 
 <section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
