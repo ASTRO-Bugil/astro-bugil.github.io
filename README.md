@@ -1,2 +1,6 @@
 # astro-bugil.github.io
-ASTRO 2026 CANSAT Data Visualizer
+astro-bugil.kro.kr
+
+Hosts model website of ASTRO - Bugil Academy.
+Developed by 윤영서
+
