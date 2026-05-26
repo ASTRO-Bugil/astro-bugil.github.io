@@ -1,10 +1,8 @@
-// Firebase SDK 불러오기
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
-// 사용자 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
   authDomain: "astro-bugil-a1dd7.firebaseapp.com",
@@ -21,14 +19,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// ★ 관리자 이메일 설정 ★
-const ADMIN_EMAIL = "yunthomas0120@gmail.com"; 
-
+/* ===== 관리자 설정 ===== */
+const ADMIN_EMAIL = 'yunthomas0120@gmail.com';
 function isAdmin(user) {
   return !!user && user.email === ADMIN_EMAIL;
 }
 
-// 모달 제어 유틸 함수
+/* ===== 유틸 함수 ===== */
 function openModal(id) {
   document.getElementById(id).style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -37,8 +34,9 @@ function closeAllModals() {
   document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
   document.body.style.overflow = '';
 }
-
-// 에러 메시지 한글화 함수
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 function translateAuthError(code) {
   const map = {
     'auth/user-not-found': '등록되지 않은 이메일입니다.',
@@ -52,42 +50,102 @@ function translateAuthError(code) {
   return map[code] || code;
 }
 
-// DOM 요소 
-const loginBtn = document.getElementById('login-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const userInfo = document.getElementById('user-info');
-const adminPanel = document.getElementById('admin-panel');
-const noticeList = document.getElementById('notice-list');
-const noticeInput = document.getElementById('notice-input');
+/* ===== 공지사항 CRUD ===== */
+async function loadNotices() {
+  const list = document.getElementById('notice-list');
+  list.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">불러오는 중...</p>';
+  try {
+    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    list.innerHTML = '';
+    if (snap.empty) {
+      list.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">등록된 공지사항이 없습니다.</p>';
+      return;
+    }
+    snap.forEach(d => renderNotice(d.id, d.data()));
+  } catch(e) {
+    list.innerHTML = '<p style="padding:1rem 1.25rem;color:#dc2626;font-size:0.85rem;">불러오기 실패: ' + e.message + '</p>';
+  }
+}
 
-// Auth 상태 감지
-onAuthStateChanged(auth, (user) => {
+function renderNotice(id, data) {
+  const list = document.getElementById('notice-list');
+  const isNew = data.createdAt && (Date.now() - data.createdAt.toMillis() < 7 * 24 * 60 * 60 * 1000);
+  const date = data.createdAt ? new Date(data.createdAt.toMillis()).toLocaleDateString('ko-KR') : '';
+  const item = document.createElement('div');
+  item.className = 'notice-item';
+  item.dataset.id = id;
+  item.innerHTML = `
+    <span class="notice-badge${isNew ? ' new' : ''}">${isNew ? 'NEW' : '공지'}</span>
+    <span class="notice-title">${escHtml(data.title)}</span>
+    <span class="notice-date">${date}</span>
+    <button class="notice-del-btn" data-id="${id}" title="삭제" style="display:none">✕</button>
+  `;
+  list.appendChild(item);
+  updateDelButtons();
+}
+
+async function addNotice(title) {
+  if (!isAdmin(auth.currentUser)) return alert('관리자만 공지사항을 등록할 수 있습니다.');
+  await addDoc(collection(db, 'notices'), {
+    title,
+    createdAt: serverTimestamp()
+  });
+  await loadNotices();
+}
+
+async function deleteNotice(id) {
+  if (!isAdmin(auth.currentUser)) return alert('관리자만 삭제할 수 있습니다.');
+  if (!confirm('공지사항을 삭제할까요?')) return;
+  await deleteDoc(doc(db, 'notices', id));
+  await loadNotices();
+}
+
+function updateDelButtons() {
+  const user = auth.currentUser;
+  document.querySelectorAll('.notice-del-btn').forEach(btn => {
+    btn.style.display = isAdmin(user) ? 'inline-block' : 'none';
+  });
+}
+
+/* ===== 가입 신청 저장 ===== */
+async function submitApplication(data) {
+  await addDoc(collection(db, 'applications'), {
+    ...data,
+    submittedAt: serverTimestamp()
+  });
+}
+
+/* ===== Auth 상태 감지 ===== */
+onAuthStateChanged(auth, user => {
+  const loginBtn   = document.getElementById('login-btn');
+  const logoutBtn  = document.getElementById('logout-btn');
+  const userInfo   = document.getElementById('user-info');
+  const adminPanel = document.getElementById('admin-panel');
+  
   if (user) {
-    loginBtn.style.display = 'none';
+    loginBtn.style.display  = 'none';
     logoutBtn.style.display = 'inline-block';
-    
     const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email.split('@')[0]);
     userInfo.textContent = label;
-    userInfo.style.display = 'inline-block';
-    
+    userInfo.style.display = 'inline';
     if (adminPanel) adminPanel.style.display = isAdmin(user) ? 'block' : 'none';
   } else {
-    loginBtn.style.display = 'inline-block';
+    loginBtn.style.display  = 'inline-block';
     logoutBtn.style.display = 'none';
-    userInfo.style.display = 'none';
+    userInfo.style.display  = 'none';
     if (adminPanel) adminPanel.style.display = 'none';
   }
+  updateDelButtons();
 });
 
-// 이벤트 바인딩 (DOM 로드 후)
+/* ===== 이벤트 바인딩 ===== */
 window.addEventListener('DOMContentLoaded', () => {
   loadNotices();
 
-  /* 로그인 버튼 -> 모달 열기 */
-  loginBtn.addEventListener('click', () => openModal('login-modal'));
-  logoutBtn.addEventListener('click', () => signOut(auth));
-
-  /* 모달 닫기 이벤트 */
+  // 모달 열기/닫기
+  document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
+  document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => closeAllModals());
   });
@@ -95,27 +153,26 @@ window.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', e => { if (e.target === overlay) closeAllModals(); });
   });
 
-  /* 탭 전환 로직 */
+  // 로그인/회원가입 탭 전환
   document.getElementById('go-signup').addEventListener('click', e => {
     e.preventDefault();
-    document.getElementById('login-tab').style.display = 'none';
+    document.getElementById('login-tab').style.display  = 'none';
     document.getElementById('signup-tab').style.display = 'block';
-    document.getElementById('login-error').textContent = '';
+    document.getElementById('login-error').textContent  = '';
   });
-  
   document.getElementById('go-login').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('signup-tab').style.display = 'none';
-    document.getElementById('login-tab').style.display = 'block';
-    document.getElementById('signup-error').textContent = '';
+    document.getElementById('login-tab').style.display  = 'block';
+    document.getElementById('signup-error').textContent  = '';
   });
 
-  /* 이메일 로그인 */
+  // 이메일 로그인
   document.getElementById('email-login-form').addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
-    const pw = document.getElementById('login-pw').value;
-    const err = document.getElementById('login-error');
+    const pw    = document.getElementById('login-pw').value;
+    const err   = document.getElementById('login-error');
     try {
       await signInWithEmailAndPassword(auth, email, pw);
       closeAllModals();
@@ -125,12 +182,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* 이메일 회원가입 */
+  // 이메일 회원가입
   document.getElementById('email-signup-form').addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
-    const pw = document.getElementById('signup-pw').value;
-    const err = document.getElementById('signup-error');
+    const pw    = document.getElementById('signup-pw').value;
+    const err   = document.getElementById('signup-error');
     try {
       await createUserWithEmailAndPassword(auth, email, pw);
       closeAllModals();
@@ -140,7 +197,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* 구글 로그인 */
+  // 구글 로그인
   document.getElementById('google-login-btn').addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -150,62 +207,52 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* 공지사항 작성 (관리자 전용) */
-  document.getElementById('submit-notice-btn').addEventListener('click', async (e) => {
-    const title = noticeInput.value.trim();
-    if (!title) return alert("공지사항 제목을 입력해주세요.");
-    
-    if (!isAdmin(auth.currentUser)) return alert('관리자만 공지사항을 등록할 수 있습니다.');
-    
-    const btn = e.target;
+  // 공지사항 등록
+  document.getElementById('notice-add-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const title = document.getElementById('notice-input').value.trim();
+    if (!title) return;
+    const btn = e.submitter;
     btn.disabled = true;
     btn.textContent = '저장 중...';
-    
     try {
-      await addDoc(collection(db, 'notices'), {
-        title: title,
-        createdAt: serverTimestamp()
-      });
-      noticeInput.value = '';
-      loadNotices();
+      await addNotice(title);
+      document.getElementById('notice-input').value = '';
     } catch(ex) {
       alert('저장 실패: ' + ex.message);
     }
     btn.disabled = false;
     btn.textContent = '등록';
   });
-});
 
-/* 공지사항 불러오기 및 렌더링 */
-async function loadNotices() {
-  noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">불러오는 중...</p>';
-  try {
-    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    noticeList.innerHTML = '';
-    
-    if (snap.empty) {
-      noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">등록된 공지사항이 없습니다.</p>';
-      return;
+  // 공지사항 삭제 (이벤트 위임)
+  document.getElementById('notice-list').addEventListener('click', e => {
+    const btn = e.target.closest('.notice-del-btn');
+    if (btn) deleteNotice(btn.dataset.id);
+  });
+
+  // 가입 신청 폼
+  document.getElementById('open-join-form').addEventListener('click', () => openModal('join-modal'));
+  document.getElementById('join-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = {
+      name:   document.getElementById('join-name').value,
+      grade:  document.getElementById('join-grade').value,
+      contact:document.getElementById('join-contact').value,
+      reason: document.getElementById('join-reason').value,
+    };
+    const btn = e.submitter;
+    btn.disabled = true;
+    btn.textContent = '제출 중...';
+    try {
+      await submitApplication(data);
+      closeAllModals();
+      alert('✅ 가입 신청이 완료되었습니다!');
+      e.target.reset();
+    } catch(ex) {
+      alert('제출 실패: ' + ex.message);
     }
-    
-    snap.forEach(docSnap => {
-      const data = docSnap.data();
-      const dateStr = data.createdAt ? new Date(data.createdAt.toMillis()).toLocaleDateString('ko-KR') : '방금 전';
-      
-      // 일주일 이내 글이면 NEW 뱃지 표시
-      const isNew = data.createdAt && (Date.now() - data.createdAt.toMillis() < 7 * 24 * 60 * 60 * 1000);
-      
-      const itemHTML = `
-        <div class="notice-item">
-          <span class="notice-badge${isNew ? ' new' : ''}">${isNew ? 'NEW' : '공지'}</span>
-          <span class="notice-title">${data.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
-          <span class="notice-date">${dateStr}</span>
-        </div>
-      `;
-      noticeList.insertAdjacentHTML('beforeend', itemHTML);
-    });
-  } catch(e) {
-    noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:#dc2626;font-size:0.85rem;">불러오기 실패: ' + e.message + '</p>';
-  }
-}
+    btn.disabled = false;
+    btn.textContent = '신청하기';
+  });
+});
