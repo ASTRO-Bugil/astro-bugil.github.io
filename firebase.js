@@ -1,46 +1,64 @@
-import { initializeApp } from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
   getAuth,
-  signInWithPopup,
   GoogleAuthProvider,
+  signInWithPopup,
   signOut
-} from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getFirestore,
   collection,
   addDoc,
   getDocs,
-  serverTimestamp
-} from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  orderBy
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* Firebase 설정 */
 
 const firebaseConfig = {
 
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyCWkdmvAy12oKDVbi8Zq96InS1VEHwozOc",
 
-  authDomain: "YOUR_DOMAIN",
+  authDomain: "astro-bugil.firebaseapp.com",
 
-  projectId: "YOUR_PROJECT_ID",
+  projectId: "astro-bugil",
 
-  storageBucket: "YOUR_BUCKET",
+  storageBucket: "astro-bugil.firebasestorage.app",
 
-  messagingSenderId: "YOUR_SENDER_ID",
+  messagingSenderId: "840698290502",
 
-  appId: "YOUR_APP_ID"
+  appId: "1:840698290502:web:fc65100c4c8ac3bf5ec547",
+
+  measurementId: "G-JVTQGN1W9S"
 
 };
 
+/* Firebase 초기화 */
+
 const app = initializeApp(firebaseConfig);
+
+/* Auth */
 
 export const auth = getAuth(app);
 
-export const provider = new GoogleAuthProvider();
+export const provider =
+new GoogleAuthProvider();
 
-export const db = getFirestore(app);
+/* Firestore */
+
+export const db =
+getFirestore(app);
+
+/* export */
 
 export {
   signInWithPopup,
@@ -48,5 +66,9 @@ export {
   collection,
   addDoc,
   getDocs,
-  serverTimestamp
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  orderBy
 };
