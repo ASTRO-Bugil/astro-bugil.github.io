@@ -87,7 +87,6 @@
     justify-content: center;
   }
 
-  /* 메인 로고 크기 및 위치 조정 (기존 유지) */
   .hero-logo img {
     width: 580px;
     height: 580px;
@@ -138,19 +137,10 @@
     font-family: inherit;
   }
 
-  .btn-blue {
-    background: var(--blue);
-    color: var(--white);
-  }
-
+  .btn-blue { background: var(--blue); color: var(--white); }
   .btn-blue:hover { background: #2563eb; }
 
-  .btn-outline {
-    background: transparent;
-    color: var(--gray);
-    border: 1px solid var(--border);
-  }
-
+  .btn-outline { background: transparent; color: var(--gray); border: 1px solid var(--border); }
   .btn-outline:hover { background: var(--gray-light); color: var(--ink); }
 
   /* DIVIDER */
@@ -203,27 +193,14 @@
     box-shadow: 0 2px 12px rgba(59,130,246,0.1);
   }
 
-  .card-icon {
-    font-size: 1.6rem;
-    margin-bottom: 0.75rem;
-    display: block;
-  }
-
-  .card h3 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 0.4rem;
-    color: var(--ink);
-  }
-
-  .card p {
-    font-size: 0.825rem;
-    color: var(--gray);
-    line-height: 1.6;
-    font-weight: 300;
-  }
+  .card-icon { font-size: 1.6rem; margin-bottom: 0.75rem; display: block; }
+  .card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--ink); }
+  .card p { font-size: 0.825rem; color: var(--gray); line-height: 1.6; font-weight: 300; }
 
   /* NOTICE */
+  .notice-header-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; }
+  .notice-header-wrap .sub { margin-bottom: 0; }
+  
   .notice-list {
     display: flex; flex-direction: column;
     border: 1px solid var(--border);
@@ -243,67 +220,6 @@
   .notice-item:last-child { border-bottom: none; }
   .notice-item:hover { background: var(--gray-light); }
 
-  .notice-badge {
-    font-size: 0.7rem;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    background: var(--blue-mid);
-    color: var(--blue);
-  }
-
-  .notice-badge.new {
-    background: #fef3c7;
-    color: #d97706;
-  }
-
-  .notice-title {
-    flex: 1;
-    font-size: 0.9rem;
-    font-weight: 400;
-  }
-
-  .notice-date {
-    font-size: 0.78rem;
-    color: var(--gray);
-    flex-shrink: 0;
-  }
-
-  /* MEMBERS */
-  .members-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
-  }
-
-  .member-card {
-    text-align: center;
-    padding: 1.25rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-
-  .member-avatar {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
-    margin: 0 auto 0.75rem;
-  }
-
-  .member-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 0.2rem;
-  }
-
-  .member-role {
-    font-size: 0.75rem;
-    color: var(--gray);
-  }
-
   /* FOOTER */
   footer {
     padding: 2rem 6%;
@@ -313,29 +229,41 @@
   }
 
   footer p { font-size: 0.8rem; color: var(--gray); }
-
   .footer-links { display: flex; gap: 1.5rem; }
+  .footer-links a { font-size: 0.8rem; color: var(--gray); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
 
-  .footer-links a {
-    font-size: 0.8rem;
-    color: var(--gray);
-    text-decoration: none;
+  /* === 추가된 CSS (모달 및 유틸리티) === */
+  .hidden { display: none !important; }
+
+  .modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
   }
 
-  .footer-links a:hover { color: var(--ink); }
+  .modal-content {
+    background: var(--white);
+    padding: 2rem; border-radius: 12px;
+    width: 90%; max-width: 450px;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+
+  .modal-content h3 { margin-bottom: 0.5rem; }
+  
+  .modal-content input, .modal-content textarea {
+    width: 100%; padding: 0.75rem;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem;
+  }
+  
+  .modal-content textarea { resize: vertical; min-height: 120px; }
 
   /* 모바일 반응형 조정 */
   @media (max-width: 700px) {
-    .hero {
-      flex-direction: column-reverse;
-      align-items: flex-start;
-      padding-top: 48px;
-    }
-    .hero-logo img {
-      width: 200px;
-      height: 200px;
-      transform: translateX(0); /* 모바일에서는 이동 효과 해제 */
-    }
+    .hero { flex-direction: column-reverse; align-items: flex-start; padding-top: 48px; }
+    .hero-logo img { width: 200px; height: 200px; transform: translateX(0); }
   }
 
   @media (max-width: 600px) {
@@ -366,6 +294,7 @@
     <div class="hero-btns">
       <a href="#join" class="btn btn-blue">동아리 소개</a>
       <a href="#activities" class="btn btn-outline">활동 보기</a>
+      <button class="btn btn-outline" id="loginBtn">관리자 로그인</button>
     </div>
   </div>
   <div class="hero-logo">
@@ -406,11 +335,16 @@
 <hr class="divider">
 
 <section id="notice">
-  <p class="section-label">Notice</p>
-  <h2>공지사항</h2>
-  <p class="sub">최근 소식을 확인하세요.</p>
-  <div class="notice-list">
-
+  <div class="notice-header-wrap">
+    <div>
+      <p class="section-label">Notice</p>
+      <h2>공지사항</h2>
+      <p class="sub">최근 소식을 확인하세요.</p>
+    </div>
+    <button id="writeNoticeBtn" class="btn btn-blue hidden">공지 작성</button>
+  </div>
+  
+  <div class="notice-list" id="noticeList">
   </div>
 </section>
 
@@ -431,6 +365,20 @@
     <a href="#">깃허브</a>
   </div>
 </footer>
+
+<div class="modal hidden" id="noticeModal">
+  <div class="modal-content">
+    <h3>공지 작성</h3>
+    <input type="text" id="noticeTitle" placeholder="제목을 입력하세요">
+    <textarea id="noticeContent" placeholder="내용을 입력하세요"></textarea>
+    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+      <button class="btn btn-outline" id="closeModalBtn">취소</button>
+      <button class="btn btn-blue" id="submitNotice">업로드</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
 
 </body>
 </html>
