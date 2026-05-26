@@ -1,10 +1,10 @@
-// 1. Firebase SDK 로드 (브라우저용 CDN 방식)
+// Firebase SDK 불러오기 (브라우저에서 바로 동작하도록 CDN 링크 사용)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 2. 발급받은 실제 Firebase 설정 적용
+// 제공해주신 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
   authDomain: "astro-bugil-a1dd7.firebaseapp.com",
@@ -15,126 +15,115 @@ const firebaseConfig = {
   measurementId: "G-21GJSVVG2G"
 };
 
-// 3. Firebase 기능 초기화
+// Firebase 초기화
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
-const analytics = getAnalytics(app); // 접속자 통계 활성화
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// 관리자 권한을 줄 이메일 설정 (기장님 또는 동아리 공식 구글 계정 이메일로 변경하세요)
+const ADMIN_EMAIL = "admin@gmail.com"; 
 
 // DOM 요소 가져오기
-const loginBtn = document.getElementById('loginBtn');
-const writeNoticeBtn = document.getElementById('writeNoticeBtn');
-const noticeList = document.getElementById('noticeList');
-const noticeModal = document.getElementById('noticeModal');
-const noticeTitle = document.getElementById('noticeTitle');
-const noticeContent = document.getElementById('noticeContent');
-const submitNotice = document.getElementById('submitNotice');
-const closeModalBtn = document.getElementById('closeModalBtn');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const adminPanel = document.getElementById('admin-panel');
+const submitNoticeBtn = document.getElementById('submit-notice-btn');
+const noticeTitleInput = document.getElementById('notice-title');
+const noticeList = document.getElementById('notice-list');
 
-// 공지사항 불러오기 로직
-async function loadNotices() {
-  noticeList.innerHTML = ''; 
-  
-  const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
-  const querySnapshot = await getDocs(q);
-  
-  if (querySnapshot.empty) {
-    noticeList.innerHTML = '<div class="notice-item" style="justify-content: center; color: var(--gray);">등록된 공지사항이 없습니다.</div>';
-    return;
-  }
-
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    const noticeItem = document.createElement('div');
-    noticeItem.className = 'notice-item';
-    
-    const dateStr = data.createdAt 
-      ? new Date(data.createdAt.toDate()).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
-      : '방금 전';
-    
-    noticeItem.innerHTML = `
-      <div style="flex: 1;">
-        <div style="font-size: 0.95rem; font-weight: 500; color: var(--ink); margin-bottom: 0.25rem;">${data.title}</div>
-        <div style="font-size: 0.85rem; color: var(--gray); white-space: pre-wrap;">${data.content}</div>
-      </div>
-      <div style="font-size: 0.8rem; color: var(--gray); flex-shrink: 0; align-self: flex-start;">${dateStr}</div>
-    `;
-    
-    noticeList.appendChild(noticeItem);
-  });
-}
-
-// 🚀 로그인/로그아웃 처리 로직
-loginBtn.addEventListener('click', () => {
-  if (auth.currentUser) {
-    // 이미 로그인되어 있다면 로그아웃 실행 (알림창 추가)
-    signOut(auth).then(() => {
-      alert("정상적으로 로그아웃 되었습니다.");
-    });
-  } else {
-    // 로그아웃 상태라면 로그인 페이지로 이동
-    window.location.href = 'login.html';
-  }
-});
-
-
-// 로그인 상태 감지 (버튼 및 UI 변경)
+// 로그인 상태 감지
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    loginBtn.textContent = '관리자 로그아웃';
-    writeNoticeBtn.classList.remove('hidden');
+    // 로그인 상태
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+    
+    // 관리자 계정인지 확인
+    if (user.email === ADMIN_EMAIL) {
+      adminPanel.style.display = 'block'; // 작성 폼 보이기
+    } else {
+      adminPanel.style.display = 'none';
+      alert('관리자 권한이 없습니다. 일반 방문자 환영합니다!');
+    }
   } else {
-    loginBtn.textContent = '관리자 로그인';
-    writeNoticeBtn.classList.add('hidden');
+    // 로그아웃 상태
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+    adminPanel.style.display = 'none'; // 작성 폼 숨기기
   }
 });
 
-// 모달창 열기/닫기
-writeNoticeBtn.addEventListener('click', () => noticeModal.classList.remove('hidden'));
-closeModalBtn.addEventListener('click', () => noticeModal.classList.add('hidden'));
-
-window.addEventListener('click', (e) => {
-  if (e.target === noticeModal) {
-    noticeModal.classList.add('hidden');
-  }
+// 로그인 버튼 이벤트
+loginBtn.addEventListener('click', () => {
+  signInWithPopup(auth, provider)
+    .catch((error) => console.error("로그인 에러:", error));
 });
 
-// 공지사항 업로드 (Firestore에 데이터 쓰기)
-submitNotice.addEventListener('click', async () => {
-  const title = noticeTitle.value.trim();
-  const content = noticeContent.value.trim();
+// 로그아웃 버튼 이벤트
+logoutBtn.addEventListener('click', () => {
+  signOut(auth).then(() => {
+    alert("로그아웃 되었습니다.");
+  }).catch((error) => console.error("로그아웃 에러:", error));
+});
 
-  if (!title || !content) {
-    alert('제목과 내용을 모두 입력해주세요.');
+// 공지사항 불러오기 (Firestore)
+async function loadNotices() {
+  noticeList.innerHTML = ''; // 초기화
+  
+  try {
+    // 공지사항을 최신순으로 정렬하여 가져오기
+    const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      noticeList.innerHTML = '<div class="notice-item"><div class="notice-title">등록된 공지사항이 없습니다.</div></div>';
+      return;
+    }
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '방금 전';
+      
+      const noticeHTML = `
+        <a href="#" class="notice-item">
+          <span class="notice-badge new">공지</span>
+          <div class="notice-title">${data.title}</div>
+          <div class="notice-date">${date}</div>
+        </a>
+      `;
+      noticeList.insertAdjacentHTML('beforeend', noticeHTML);
+    });
+  } catch (error) {
+    console.error("공지사항 불러오기 에러:", error);
+    noticeList.innerHTML = '<div class="notice-item"><div class="notice-title">공지사항을 불러오는 중 오류가 발생했습니다.</div></div>';
+  }
+}
+
+// 공지사항 작성하기 (Firestore)
+submitNoticeBtn.addEventListener('click', async () => {
+  const title = noticeTitleInput.value.trim();
+  if (title === "") {
+    alert("공지사항 제목을 입력해주세요!");
     return;
   }
 
   try {
-    submitNotice.textContent = '업로드 중...';
-    submitNotice.disabled = true;
-
     await addDoc(collection(db, "notices"), {
       title: title,
-      content: content,
       createdAt: serverTimestamp()
     });
-
-    alert('공지가 성공적으로 등록되었습니다!');
     
-    noticeTitle.value = '';
-    noticeContent.value = '';
-    noticeModal.classList.add('hidden');
-    submitNotice.textContent = '업로드';
-    submitNotice.disabled = false;
+    alert("공지사항이 성공적으로 등록되었습니다!");
+    noticeTitleInput.value = ""; 
+    loadNotices(); 
     
-    loadNotices();
   } catch (error) {
-    console.error("업로드 에러:", error);
-    alert('업로드 실패: 데이터베이스 쓰기 권한이 없습니다.');
-    submitNotice.textContent = '업로드';
-    submitNotice.disabled = false;
+    console.error("공지사항 등록 에러:", error);
+    alert("등록 중 오류가 발생했습니다.");
   }
 });
 
-// 처음 웹페이지 켰을 때 데이터 불러오기 실행
-loadNotices();
+// 페이지 로드 시 공지사항 먼저 불러오기
+window.addEventListener('DOMContentLoaded', loadNotices);
