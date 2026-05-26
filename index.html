@@ -5,14 +5,316 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ASTRO - Bugil Academy</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --blue-mid: #dbeafe;
+    --ink: #1e293b;
+    --gray: #64748b;
+    --gray-light: #f1f5f9;
+    --border: #e2e8f0;
+    --white: #ffffff;
+    --red: #dc2626;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6%;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--white);
+    z-index: 10;
+  }
+
+  .logo {
+    font-weight: 700; font-size: 1rem; color: var(--ink);
+    text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+
+  .nav-logo-icon { width: 40px; height: 40px; object-fit: contain; }
+
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+
+  .nav-links a { font-size: 0.875rem; color: var(--gray); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--ink); }
+
+  .nav-right { display: flex; align-items: center; gap: 0.75rem; }
+
+  #user-info {
+    font-size: 0.8rem; color: var(--gray);
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: none;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 80px 6% 60px;
+    display: flex; align-items: center; justify-content: space-between; gap: 3rem;
+  }
+
+  .hero-text { flex: 1; max-width: 520px; }
+
+  .hero-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+
+  .hero-logo img {
+    width: 580px; height: 580px; object-fit: contain; transform: translateX(-40px);
+  }
+
+  .hero-tag {
+    display: inline-block; background: var(--blue-light); color: var(--blue);
+    font-size: 0.78rem; font-weight: 500; padding: 4px 12px;
+    border-radius: 20px; margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2.4rem; font-weight: 700; line-height: 1.25;
+    letter-spacing: -0.03em; color: var(--ink); margin-bottom: 1rem;
+  }
+
+  .hero p { font-size: 1rem; color: var(--gray); max-width: 480px; margin-bottom: 2rem; font-weight: 300; }
+
+  .hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block; padding: 0.6rem 1.4rem; border-radius: 8px;
+    font-size: 0.875rem; font-weight: 500; text-decoration: none; cursor: pointer;
+    transition: all 0.2s; border: none; font-family: inherit;
+  }
+
+  .btn-blue { background: var(--blue); color: var(--white); }
+  .btn-blue:hover { background: #2563eb; }
+  .btn-blue:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn-outline { background: transparent; color: var(--gray); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--gray-light); color: var(--ink); }
+
+  .btn-sm { padding: 0.45rem 1rem; font-size: 0.8rem; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 6%; }
+
+  /* SECTION */
+  section { padding: 60px 6%; }
+
+  .section-label {
+    font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 1rem;
+  }
+
+  h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 0.5rem; }
+
+  .sub { font-size: 0.9rem; color: var(--gray); margin-bottom: 2.5rem; font-weight: 300; }
+
+  /* ACTIVITIES */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+
+  .card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;
+    background: var(--white); transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--blue); box-shadow: 0 2px 12px rgba(59,130,246,0.1); }
+
+  .card-icon { font-size: 1.6rem; margin-bottom: 0.75rem; display: block; }
+  .card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--ink); }
+  .card p { font-size: 0.825rem; color: var(--gray); line-height: 1.6; font-weight: 300; }
+
+  /* NOTICE */
+  .notice-list {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    min-height: 60px;
+  }
+
+  .notice-item {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink); transition: background 0.15s;
+  }
+
+  .notice-item:last-child { border-bottom: none; }
+  .notice-item:hover { background: var(--gray-light); }
+
+  .notice-badge {
+    font-size: 0.7rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;
+    flex-shrink: 0; background: var(--blue-mid); color: var(--blue);
+  }
+
+  .notice-badge.new { background: #fef3c7; color: #d97706; }
+
+  .notice-title { flex: 1; font-size: 0.9rem; font-weight: 400; }
+
+  .notice-date { font-size: 0.78rem; color: var(--gray); flex-shrink: 0; }
+
+  .notice-del-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--gray); font-size: 0.85rem; padding: 2px 6px;
+    border-radius: 4px; transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .notice-del-btn:hover { background: #fee2e2; color: var(--red); }
+
+  /* ADMIN PANEL */
+  #admin-panel {
+    display: none;
+    margin-top: 1.25rem;
+    background: var(--blue-light);
+    border: 1px dashed var(--blue);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+
+  #admin-panel p { font-size: 0.8rem; color: var(--blue); margin-bottom: 0.75rem; font-weight: 500; }
+
+  #notice-add-form { display: flex; gap: 0.5rem; }
+
+  #notice-input {
+    flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 0.875rem; font-family: inherit;
+    outline: none; transition: border-color 0.2s;
+  }
+
+  #notice-input:focus { border-color: var(--blue); }
+
+  /* FOOTER */
+  footer {
+    padding: 2rem 6%; border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+
+  footer p { font-size: 0.8rem; color: var(--gray); }
+  .footer-links { display: flex; gap: 1.5rem; }
+  .footer-links a { font-size: 0.8rem; color: var(--gray); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    animation: modal-in 0.2s ease;
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none; cursor: pointer;
+    font-size: 1.2rem; color: var(--gray); line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .modal-close:hover { color: var(--ink); }
+
+  .modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--ink); }
+
+  .form-group { margin-bottom: 1rem; }
+
+  .form-group label {
+    display: block; font-size: 0.8rem; font-weight: 500;
+    color: var(--gray); margin-bottom: 0.35rem;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%; padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.875rem; font-family: inherit; color: var(--ink);
+    outline: none; transition: border-color 0.2s; background: var(--white);
+    resize: vertical;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus { border-color: var(--blue); }
+
+  .form-error { font-size: 0.78rem; color: var(--red); margin-top: 0.5rem; min-height: 1.2em; }
+
+  .divider-text {
+    display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.75rem; color: var(--gray); margin: 1rem 0;
+  }
+
+  .divider-text::before, .divider-text::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .btn-google {
+    width: 100%; background: var(--white); color: var(--ink);
+    border: 1px solid var(--border); display: flex; align-items: center;
+    justify-content: center; gap: 0.5rem;
+    padding: 0.6rem; border-radius: 8px;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    font-family: inherit; transition: background 0.15s;
+  }
+
+  .btn-google:hover { background: var(--gray-light); }
+
+  .btn-google img { width: 18px; height: 18px; }
+
+  .modal-link {
+    font-size: 0.78rem; text-align: center; margin-top: 1rem;
+    color: var(--gray);
+  }
+
+  .modal-link a { color: var(--blue); text-decoration: none; }
+  .modal-link a:hover { text-decoration: underline; }
+
+  /* 가입신청 모달 */
+  #join-modal .modal { max-width: 480px; }
+
+  /* 모바일 */
+  @media (max-width: 700px) {
+    .hero { flex-direction: column-reverse; align-items: flex-start; padding-top: 48px; }
+    .hero-logo img { width: 200px; height: 200px; transform: translateX(0); }
+    .nav-links { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.8rem; }
+  }
+</style>
 </head>
 <body>
 
 <nav>
   <a href="#" class="logo">
     <img src="logo.png" alt="ASTRO 로고" class="nav-logo-icon">
-    ASTRO v2
+    ASTRO
   </a>
   <ul class="nav-links">
     <li><a href="#activities">활동보기</a></li>
@@ -107,7 +409,6 @@
   </div>
 </footer>
 
-
 <div id="login-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close" aria-label="닫기">✕</button>
@@ -156,7 +457,6 @@
   </div>
 </div>
 
-
 <div id="join-modal" class="modal-overlay">
   <div class="modal" style="max-width:480px">
     <button class="modal-close" aria-label="닫기">✕</button>
@@ -185,5 +485,6 @@
 </div>
 
 <script type="module" src="main.js"></script>
+
 </body>
 </html>
