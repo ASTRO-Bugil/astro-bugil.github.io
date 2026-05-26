@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ASTRO - Bugil Academy</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTRO - Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <a href="#" class="logo">
     <img src="logo.png" alt="ASTRO 로고" class="nav-logo-icon">
@@ -27,7 +26,6 @@
   </div>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <div class="hero-text">
     <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
@@ -45,7 +43,6 @@
 
 <hr class="divider">
 
-<!-- ACTIVITIES -->
 <section id="activities">
   <p class="section-label">Activities</p>
   <h2>이런 걸 해요</h2>
@@ -76,7 +73,6 @@
 
 <hr class="divider">
 
-<!-- NOTICE -->
 <section id="notice">
   <p class="section-label">Notice</p>
   <h2>공지사항</h2>
@@ -84,7 +80,6 @@
 
   <div id="notice-list" class="notice-list"></div>
 
-  <!-- 관리자 공지 등록 패널 -->
   <div id="admin-panel">
     <p>🔒 관리자 모드 — 공지사항 등록</p>
     <form id="notice-add-form">
@@ -96,7 +91,6 @@
 
 <hr class="divider">
 
-<!-- JOIN -->
 <section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
   <p class="section-label">Join Us</p>
   <h2>같이 해요! 👋</h2>
@@ -114,12 +108,10 @@
 </footer>
 
 
-<!-- ===== 로그인 모달 ===== -->
 <div id="login-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close" aria-label="닫기">✕</button>
 
-    <!-- 로그인 탭 -->
     <div id="login-tab">
       <h3>🔐 로그인</h3>
 
@@ -145,7 +137,6 @@
       <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
     </div>
 
-    <!-- 회원가입 탭 -->
     <div id="signup-tab" style="display:none">
       <h3>✏️ 회원가입</h3>
       <form id="email-signup-form">
@@ -166,7 +157,6 @@
 </div>
 
 
-<!-- ===== 가입 신청 모달 ===== -->
 <div id="join-modal" class="modal-overlay">
   <div class="modal" style="max-width:480px">
     <button class="modal-close" aria-label="닫기">✕</button>
