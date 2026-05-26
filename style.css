@@ -262,40 +262,6 @@ h2 {
   flex-shrink: 0;
 }
 
-/* MEMBERS */
-.members-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
-}
-
-.member-card {
-  text-align: center;
-  padding: 1.25rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-.member-avatar {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-  margin: 0 auto 0.75rem;
-}
-
-.member-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ink);
-  margin-bottom: 0.2rem;
-}
-
-.member-role {
-  font-size: 0.75rem;
-  color: var(--gray);
-}
-
 /* FOOTER */
 footer {
   padding: 2rem 6%;
@@ -316,6 +282,49 @@ footer p { font-size: 0.8rem; color: var(--gray); }
 
 .footer-links a:hover { color: var(--ink); }
 
+/* 모달(팝업) 스타일 추가 */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: none; 
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 360px;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.close-btn {
+  position: absolute;
+  top: 1rem; right: 1.25rem;
+  background: none; border: none;
+  font-size: 1.5rem;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.close-btn:hover { color: var(--ink); }
+
+.modal-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.modal-input:focus { outline: none; border-color: var(--blue); }
+
 /* 모바일 반응형 조정 */
 @media (max-width: 700px) {
   .hero {
@@ -334,4 +343,3 @@ footer p { font-size: 0.8rem; color: var(--gray); }
   .nav-links { display: none; }
   .hero h1 { font-size: 1.8rem; }
 }
-
