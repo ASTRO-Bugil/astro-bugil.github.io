@@ -19,37 +19,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-/* ===== 관리자 설정 ===== */
-const ADMIN_EMAIL = 'yunthomas0120@gmail.com';
-function isAdmin(user) {
-  return !!user && user.email === ADMIN_EMAIL;
-}
-
-/* ===== 유틸 함수 ===== */
-function openModal(id) {
-  document.getElementById(id).style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-function closeAllModals() {
-  document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-  document.body.style.overflow = '';
-}
-function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function translateAuthError(code) {
-  const map = {
-    'auth/user-not-found': '등록되지 않은 이메일입니다.',
-    'auth/wrong-password': '비밀번호가 틀렸습니다.',
-    'auth/invalid-email': '이메일 형식이 잘못되었습니다.',
-    'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
-    'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
-    'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
-    'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
-  };
-  return map[code] || code;
-}
-
 /* ===== 공지사항 CRUD ===== */
 async function loadNotices() {
   const list = document.getElementById('notice-list');
@@ -82,7 +51,6 @@ function renderNotice(id, data) {
     <button class="notice-del-btn" data-id="${id}" title="삭제" style="display:none">✕</button>
   `;
   list.appendChild(item);
-  updateDelButtons();
 }
 
 async function addNotice(title) {
@@ -92,6 +60,7 @@ async function addNotice(title) {
     createdAt: serverTimestamp()
   });
   await loadNotices();
+  updateDelButtons();
 }
 
 async function deleteNotice(id) {
@@ -99,20 +68,28 @@ async function deleteNotice(id) {
   if (!confirm('공지사항을 삭제할까요?')) return;
   await deleteDoc(doc(db, 'notices', id));
   await loadNotices();
+  updateDelButtons();
 }
 
-function updateDelButtons() {
-  const user = auth.currentUser;
-  document.querySelectorAll('.notice-del-btn').forEach(btn => {
-    btn.style.display = isAdmin(user) ? 'inline-block' : 'none';
-  });
-}
-
-/* ===== 가입 신청 저장 ===== */
+/* ===== 가입 신청 Firestore 저장 ===== */
 async function submitApplication(data) {
   await addDoc(collection(db, 'applications'), {
     ...data,
     submittedAt: serverTimestamp()
+  });
+}
+
+/* ===== 관리자 설정 ===== */
+const ADMIN_EMAIL = 'yunthomas0120@gmail.com';
+function isAdmin(user) {
+  return !!user && user.email === ADMIN_EMAIL;
+}
+
+/* ===== 관리자 삭제 버튼 토글 ===== */
+function updateDelButtons() {
+  const user = auth.currentUser;
+  document.querySelectorAll('.notice-del-btn').forEach(btn => {
+    btn.style.display = isAdmin(user) ? 'inline-block' : 'none';
   });
 }
 
@@ -122,11 +99,10 @@ onAuthStateChanged(auth, user => {
   const logoutBtn  = document.getElementById('logout-btn');
   const userInfo   = document.getElementById('user-info');
   const adminPanel = document.getElementById('admin-panel');
-  
   if (user) {
     loginBtn.style.display  = 'none';
     logoutBtn.style.display = 'inline-block';
-    const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email.split('@')[0]);
+    const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email);
     userInfo.textContent = label;
     userInfo.style.display = 'inline';
     if (adminPanel) adminPanel.style.display = isAdmin(user) ? 'block' : 'none';
@@ -139,13 +115,15 @@ onAuthStateChanged(auth, user => {
   updateDelButtons();
 });
 
-/* ===== 이벤트 바인딩 ===== */
+/* ===== 이벤트 바인딩 (DOMContentLoaded 이후) ===== */
 window.addEventListener('DOMContentLoaded', () => {
   loadNotices();
 
-  // 모달 열기/닫기
+  /* 로그인 버튼 → 모달 열기 */
   document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
   document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+  /* 모달 닫기 */
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => closeAllModals());
   });
@@ -153,7 +131,31 @@ window.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', e => { if (e.target === overlay) closeAllModals(); });
   });
 
-  // 로그인/회원가입 탭 전환
+  /* 이메일 로그인 */
+  document.getElementById('email-login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const pw    = document.getElementById('login-pw').value;
+    const err   = document.getElementById('login-error');
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      closeAllModals();
+    } catch(ex) {
+      err.textContent = '로그인 실패: ' + translateAuthError(ex.code);
+    }
+  });
+
+  /* 구글 로그인 */
+  document.getElementById('google-login-btn').addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      closeAllModals();
+    } catch(ex) {
+      document.getElementById('login-error').textContent = translateAuthError(ex.code);
+    }
+  });
+
+  /* 회원가입 탭 */
   document.getElementById('go-signup').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('login-tab').style.display  = 'none';
@@ -164,25 +166,9 @@ window.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     document.getElementById('signup-tab').style.display = 'none';
     document.getElementById('login-tab').style.display  = 'block';
-    document.getElementById('signup-error').textContent  = '';
   });
 
-  // 이메일 로그인
-  document.getElementById('email-login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const pw    = document.getElementById('login-pw').value;
-    const err   = document.getElementById('login-error');
-    try {
-      await signInWithEmailAndPassword(auth, email, pw);
-      closeAllModals();
-      e.target.reset();
-    } catch(ex) {
-      err.textContent = '로그인 실패: ' + translateAuthError(ex.code);
-    }
-  });
-
-  // 이메일 회원가입
+  /* 이메일 회원가입 */
   document.getElementById('email-signup-form').addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
@@ -191,23 +177,12 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       await createUserWithEmailAndPassword(auth, email, pw);
       closeAllModals();
-      e.target.reset();
     } catch(ex) {
       err.textContent = '가입 실패: ' + translateAuthError(ex.code);
     }
   });
 
-  // 구글 로그인
-  document.getElementById('google-login-btn').addEventListener('click', async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      closeAllModals();
-    } catch(ex) {
-      document.getElementById('login-error').textContent = translateAuthError(ex.code);
-    }
-  });
-
-  // 공지사항 등록
+  /* 공지사항 추가 (관리자) */
   document.getElementById('notice-add-form').addEventListener('submit', async e => {
     e.preventDefault();
     const title = document.getElementById('notice-input').value.trim();
@@ -225,21 +200,23 @@ window.addEventListener('DOMContentLoaded', () => {
     btn.textContent = '등록';
   });
 
-  // 공지사항 삭제 (이벤트 위임)
+  /* 공지 삭제 이벤트 위임 */
   document.getElementById('notice-list').addEventListener('click', e => {
     const btn = e.target.closest('.notice-del-btn');
     if (btn) deleteNotice(btn.dataset.id);
   });
 
-  // 가입 신청 폼
+  /* 가입 신청 폼 열기 */
   document.getElementById('open-join-form').addEventListener('click', () => openModal('join-modal'));
+
+  /* 가입 신청 제출 */
   document.getElementById('join-form').addEventListener('submit', async e => {
     e.preventDefault();
     const data = {
       name:   document.getElementById('join-name').value,
       grade:  document.getElementById('join-grade').value,
-      contact:document.getElementById('join-contact').value,
       reason: document.getElementById('join-reason').value,
+      contact:document.getElementById('join-contact').value,
     };
     const btn = e.submitter;
     btn.disabled = true;
@@ -248,7 +225,7 @@ window.addEventListener('DOMContentLoaded', () => {
       await submitApplication(data);
       closeAllModals();
       alert('✅ 가입 신청이 완료되었습니다!');
-      e.target.reset();
+      document.getElementById('join-form').reset();
     } catch(ex) {
       alert('제출 실패: ' + ex.message);
     }
@@ -256,3 +233,28 @@ window.addEventListener('DOMContentLoaded', () => {
     btn.textContent = '신청하기';
   });
 });
+
+/* ===== 유틸 ===== */
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+  document.body.style.overflow = '';
+}
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function translateAuthError(code) {
+  const map = {
+    'auth/user-not-found': '등록되지 않은 이메일입니다.',
+    'auth/wrong-password': '비밀번호가 틀렸습니다.',
+    'auth/invalid-email': '이메일 형식이 잘못되었습니다.',
+    'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
+    'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+    'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
+    'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+  };
+  return map[code] || code;
+}
