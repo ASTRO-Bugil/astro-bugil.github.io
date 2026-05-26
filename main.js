@@ -67,13 +67,16 @@ async function loadNotices() {
 // 🚀 로그인/로그아웃 처리 로직
 loginBtn.addEventListener('click', () => {
   if (auth.currentUser) {
-    // 이미 로그인되어 있다면 로그아웃 실행
-    signOut(auth);
+    // 이미 로그인되어 있다면 로그아웃 실행 (알림창 추가)
+    signOut(auth).then(() => {
+      alert("정상적으로 로그아웃 되었습니다.");
+    });
   } else {
-    // 로그아웃 상태라면 팝업 대신 로그인 전용 페이지(login.html)로 이동
+    // 로그아웃 상태라면 로그인 페이지로 이동
     window.location.href = 'login.html';
   }
 });
+
 
 // 로그인 상태 감지 (버튼 및 UI 변경)
 onAuthStateChanged(auth, (user) => {
