@@ -102,7 +102,7 @@ onAuthStateChanged(auth, user => {
   if (user) {
     loginBtn.style.display  = 'none';
     logoutBtn.style.display = 'inline-block';
-    const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email);
+    const label = isAdmin(user) ? '💻 ' + userName : userName;
     userInfo.textContent = label;
     userInfo.style.display = 'inline';
     if (adminPanel) adminPanel.style.display = isAdmin(user) ? 'block' : 'none';
