@@ -1,8 +1,8 @@
 // Firebase SDK 불러오기
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // 사용자 Firebase Config
 const firebaseConfig = {
@@ -15,168 +15,197 @@ const firebaseConfig = {
   measurementId: "G-21GJSVVG2G"
 };
 
-// Firebase 초기화
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider();
 
-// ★ 여기에 관리자 이메일을 정확히 입력하세요 ★
-const ADMIN_EMAIL = "여기에_관리자_이메일_입력@gmail.com"; 
+// ★ 관리자 이메일 설정 ★
+const ADMIN_EMAIL = "yunthomas0120@gmail.com"; 
 
-// DOM 요소 (네비게이션)
+function isAdmin(user) {
+  return !!user && user.email === ADMIN_EMAIL;
+}
+
+// 모달 제어 유틸 함수
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+  document.body.style.overflow = '';
+}
+
+// 에러 메시지 한글화 함수
+function translateAuthError(code) {
+  const map = {
+    'auth/user-not-found': '등록되지 않은 이메일입니다.',
+    'auth/wrong-password': '비밀번호가 틀렸습니다.',
+    'auth/invalid-email': '이메일 형식이 잘못되었습니다.',
+    'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
+    'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+    'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
+    'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+  };
+  return map[code] || code;
+}
+
+// DOM 요소 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
-const userNameDisplay = document.getElementById('user-name-display');
-
-// DOM 요소 (글쓰기)
+const userInfo = document.getElementById('user-info');
 const adminPanel = document.getElementById('admin-panel');
-const submitNoticeBtn = document.getElementById('submit-notice-btn');
-const noticeTitleInput = document.getElementById('notice-title');
 const noticeList = document.getElementById('notice-list');
+const noticeInput = document.getElementById('notice-input');
 
-// DOM 요소 (모달 팝업)
-const loginModal = document.getElementById('login-modal');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const googleLoginBtn = document.getElementById('google-login-btn');
-const emailLoginBtn = document.getElementById('email-login-btn');
-const emailInput = document.getElementById('email-input');
-const passwordInput = document.getElementById('password-input');
-
-// 1. 로그인 상태 감지 및 UI 업데이트
+// Auth 상태 감지
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     
-    const displayName = user.displayName || user.email.split('@')[0];
+    const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email.split('@')[0]);
+    userInfo.textContent = label;
+    userInfo.style.display = 'inline-block';
     
-    // 관리자 여부 확인
-    if (user.email === ADMIN_EMAIL) {
-      adminPanel.style.display = 'block'; 
-      userNameDisplay.textContent = `⭐ ${displayName} (관리자)`;
-    } else {
-      adminPanel.style.display = 'none';
-      userNameDisplay.textContent = `${displayName}님 환영합니다`;
-    }
-    
-    userNameDisplay.style.display = 'inline-block';
-    loginModal.style.display = 'none'; // 로그인 성공 시 모달 닫기
+    if (adminPanel) adminPanel.style.display = isAdmin(user) ? 'block' : 'none';
   } else {
     loginBtn.style.display = 'inline-block';
     logoutBtn.style.display = 'none';
-    adminPanel.style.display = 'none'; 
-    userNameDisplay.style.display = 'none';
-    userNameDisplay.textContent = '';
+    userInfo.style.display = 'none';
+    if (adminPanel) adminPanel.style.display = 'none';
   }
 });
 
-// 2. 모달 열기 / 닫기
-loginBtn.addEventListener('click', () => {
-  loginModal.style.display = 'flex';
-});
+// 이벤트 바인딩 (DOM 로드 후)
+window.addEventListener('DOMContentLoaded', () => {
+  loadNotices();
 
-closeModalBtn.addEventListener('click', () => {
-  loginModal.style.display = 'none';
-});
+  /* 로그인 버튼 -> 모달 열기 */
+  loginBtn.addEventListener('click', () => openModal('login-modal'));
+  logoutBtn.addEventListener('click', () => signOut(auth));
 
-window.addEventListener('click', (e) => {
-  if (e.target === loginModal) {
-    loginModal.style.display = 'none';
-  }
-});
+  /* 모달 닫기 이벤트 */
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => closeAllModals());
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeAllModals(); });
+  });
 
-// 3. 로그인 / 로그아웃 기능
-googleLoginBtn.addEventListener('click', () => {
-  signInWithPopup(auth, provider)
-    .catch((error) => {
-      console.error("구글 로그인 에러:", error);
-      alert("로그인 중 오류가 발생했습니다.");
-    });
-});
-
-emailLoginBtn.addEventListener('click', () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-
-  if (!email || !password) {
-    alert("이메일과 비밀번호를 모두 입력해주세요.");
-    return;
-  }
-
-  signInWithEmailAndPassword(auth, email, password)
-    .then(() => {
-      emailInput.value = '';
-      passwordInput.value = '';
-    })
-    .catch((error) => {
-      console.error("이메일 로그인 에러:", error);
-      alert("이메일이나 비밀번호가 올바르지 않습니다.");
-    });
-});
-
-logoutBtn.addEventListener('click', () => {
-  signOut(auth).then(() => {
-    alert("로그아웃 되었습니다.");
-  }).catch((error) => console.error("로그아웃 에러:", error));
-});
-
-// 4. 공지사항 데이터 불러오기
-async function loadNotices() {
-  noticeList.innerHTML = ''; 
+  /* 탭 전환 로직 */
+  document.getElementById('go-signup').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('login-tab').style.display = 'none';
+    document.getElementById('signup-tab').style.display = 'block';
+    document.getElementById('login-error').textContent = '';
+  });
   
-  try {
-    const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
+  document.getElementById('go-login').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('signup-tab').style.display = 'none';
+    document.getElementById('login-tab').style.display = 'block';
+    document.getElementById('signup-error').textContent = '';
+  });
+
+  /* 이메일 로그인 */
+  document.getElementById('email-login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const pw = document.getElementById('login-pw').value;
+    const err = document.getElementById('login-error');
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      closeAllModals();
+      e.target.reset();
+    } catch(ex) {
+      err.textContent = '로그인 실패: ' + translateAuthError(ex.code);
+    }
+  });
+
+  /* 이메일 회원가입 */
+  document.getElementById('email-signup-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value;
+    const pw = document.getElementById('signup-pw').value;
+    const err = document.getElementById('signup-error');
+    try {
+      await createUserWithEmailAndPassword(auth, email, pw);
+      closeAllModals();
+      e.target.reset();
+    } catch(ex) {
+      err.textContent = '가입 실패: ' + translateAuthError(ex.code);
+    }
+  });
+
+  /* 구글 로그인 */
+  document.getElementById('google-login-btn').addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      closeAllModals();
+    } catch(ex) {
+      document.getElementById('login-error').textContent = translateAuthError(ex.code);
+    }
+  });
+
+  /* 공지사항 작성 (관리자 전용) */
+  document.getElementById('submit-notice-btn').addEventListener('click', async (e) => {
+    const title = noticeInput.value.trim();
+    if (!title) return alert("공지사항 제목을 입력해주세요.");
     
-    if (querySnapshot.empty) {
-      noticeList.innerHTML = '<div class="notice-item"><div class="notice-title">등록된 공지사항이 없습니다.</div></div>';
+    if (!isAdmin(auth.currentUser)) return alert('관리자만 공지사항을 등록할 수 있습니다.');
+    
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+    
+    try {
+      await addDoc(collection(db, 'notices'), {
+        title: title,
+        createdAt: serverTimestamp()
+      });
+      noticeInput.value = '';
+      loadNotices();
+    } catch(ex) {
+      alert('저장 실패: ' + ex.message);
+    }
+    btn.disabled = false;
+    btn.textContent = '등록';
+  });
+});
+
+/* 공지사항 불러오기 및 렌더링 */
+async function loadNotices() {
+  noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">불러오는 중...</p>';
+  try {
+    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    noticeList.innerHTML = '';
+    
+    if (snap.empty) {
+      noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:var(--gray);font-size:0.85rem;">등록된 공지사항이 없습니다.</p>';
       return;
     }
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '방금 전';
+    
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      const dateStr = data.createdAt ? new Date(data.createdAt.toMillis()).toLocaleDateString('ko-KR') : '방금 전';
       
-      const noticeHTML = `
-        <a href="#" class="notice-item">
-          <span class="notice-badge new">공지</span>
-          <div class="notice-title">${data.title}</div>
-          <div class="notice-date">${date}</div>
-        </a>
+      // 일주일 이내 글이면 NEW 뱃지 표시
+      const isNew = data.createdAt && (Date.now() - data.createdAt.toMillis() < 7 * 24 * 60 * 60 * 1000);
+      
+      const itemHTML = `
+        <div class="notice-item">
+          <span class="notice-badge${isNew ? ' new' : ''}">${isNew ? 'NEW' : '공지'}</span>
+          <span class="notice-title">${data.title.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+          <span class="notice-date">${dateStr}</span>
+        </div>
       `;
-      noticeList.insertAdjacentHTML('beforeend', noticeHTML);
+      noticeList.insertAdjacentHTML('beforeend', itemHTML);
     });
-  } catch (error) {
-    console.error("공지사항 불러오기 에러:", error);
-    noticeList.innerHTML = '<div class="notice-item"><div class="notice-title">공지사항을 불러오는 중 오류가 발생했습니다.</div></div>';
+  } catch(e) {
+    noticeList.innerHTML = '<p style="padding:1rem 1.25rem;color:#dc2626;font-size:0.85rem;">불러오기 실패: ' + e.message + '</p>';
   }
 }
-
-// 5. 공지사항 데이터 쓰기
-submitNoticeBtn.addEventListener('click', async () => {
-  const title = noticeTitleInput.value.trim();
-  if (title === "") {
-    alert("공지사항 제목을 입력해주세요!");
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, "notices"), {
-      title: title,
-      createdAt: serverTimestamp()
-    });
-    
-    alert("공지사항이 성공적으로 등록되었습니다!");
-    noticeTitleInput.value = ""; 
-    loadNotices(); 
-    
-  } catch (error) {
-    console.error("공지사항 등록 에러:", error);
-    alert("등록 권한이 없거나 오류가 발생했습니다.");
-  }
-});
-
-// 6. 페이지 로드 완료 시 공지사항 목록 표시
-window.addEventListener('DOMContentLoaded', loadNotices);
