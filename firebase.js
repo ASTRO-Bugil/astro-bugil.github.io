@@ -1,13 +1,16 @@
+// firebase.js
+
 import { initializeApp }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signOut
+  signOut,
+  onAuthStateChanged
 }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 
 import {
   getFirestore,
@@ -16,13 +19,13 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  serverTimestamp
 }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* Firebase 설정 */
+/* Firebase config */
 
 const firebaseConfig = {
 
@@ -42,33 +45,39 @@ const firebaseConfig = {
 
 };
 
-/* Firebase 초기화 */
+/* initialize */
 
 const app = initializeApp(firebaseConfig);
 
-/* Auth */
+/* auth */
 
-export const auth = getAuth(app);
+const auth = getAuth(app);
 
-export const provider =
+const provider =
 new GoogleAuthProvider();
 
-/* Firestore */
+/* firestore */
 
-export const db =
+const db =
 getFirestore(app);
 
-/* export */
-
 export {
+
+  auth,
+  provider,
+  db,
+
   signInWithPopup,
   signOut,
+  onAuthStateChanged,
+
   collection,
   addDoc,
   getDocs,
   deleteDoc,
   doc,
-  serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  serverTimestamp
+
 };
