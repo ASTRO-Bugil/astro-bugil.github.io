@@ -18,7 +18,10 @@
     <li><a href="#activities">활동보기</a></li>
     <li><a href="#notice">공지사항</a></li>
     <li><a href="#join">가입 신청</a></li>
-    <li><button id="login-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">관리자 로그인</button></li>
+    
+    <li><span id="user-name-display" style="display: none; font-weight: 600; font-size: 0.9rem; color: var(--blue);"></span></li>
+    
+    <li><button id="login-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">로그인</button></li>
     <li><button id="logout-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; display: none;">로그아웃</button></li>
   </ul>
 </nav>
@@ -102,6 +105,23 @@
     <a href="#">깃허브</a>
   </div>
 </footer>
+
+<div id="login-modal" class="modal-overlay">
+  <div class="modal-content">
+    <button id="close-modal-btn" class="close-btn">&times;</button>
+    <h3 style="margin-bottom: 1.5rem; text-align: center;">로그인</h3>
+    
+    <button id="google-login-btn" class="btn btn-outline" style="width: 100%; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <span>🌐 구글 계정으로 로그인</span>
+    </button>
+    
+    <div style="text-align: center; margin: 1rem 0; font-size: 0.8rem; color: var(--gray);">또는 이메일로 로그인</div>
+    
+    <input type="email" id="email-input" placeholder="이메일 주소" class="modal-input">
+    <input type="password" id="password-input" placeholder="비밀번호" class="modal-input">
+    <button id="email-login-btn" class="btn btn-blue" style="width: 100%;">이메일로 로그인</button>
+  </div>
+</div>
 
 <script type="module" src="main.js"></script>
 </body>
