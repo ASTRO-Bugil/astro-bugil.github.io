@@ -9,6 +9,7 @@
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
   <a href="#" class="logo">
     <img src="logo.png" alt="ASTRO 로고" class="nav-logo-icon">
@@ -18,12 +19,15 @@
     <li><a href="#activities">활동보기</a></li>
     <li><a href="#notice">공지사항</a></li>
     <li><a href="#join">가입 신청</a></li>
-    <li><span id="user-info" style="display: none; font-weight: 600; font-size: 0.85rem; color: var(--blue);"></span></li>
-    <li><button id="login-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">로그인</button></li>
-    <li><button id="logout-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; display: none;">로그아웃</button></li>
   </ul>
+  <div class="nav-right">
+    <span id="user-info"></span>
+    <button id="login-btn" class="btn btn-outline btn-sm">로그인</button>
+    <button id="logout-btn" class="btn btn-outline btn-sm" style="display:none">로그아웃</button>
+  </div>
 </nav>
 
+<!-- HERO -->
 <div class="hero">
   <div class="hero-text">
     <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
@@ -41,6 +45,7 @@
 
 <hr class="divider">
 
+<!-- ACTIVITIES -->
 <section id="activities">
   <p class="section-label">Activities</p>
   <h2>이런 걸 해요</h2>
@@ -71,29 +76,32 @@
 
 <hr class="divider">
 
+<!-- NOTICE -->
 <section id="notice">
   <p class="section-label">Notice</p>
   <h2>공지사항</h2>
   <p class="sub">최근 소식을 확인하세요.</p>
-  
-  <div id="admin-panel" style="display: none; background: var(--blue-light); border: 1px dashed var(--blue); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-    <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--blue);">🔒 관리자 모드 — 새 공지사항 작성</h3>
-    <div style="display: flex; gap: 0.5rem;">
-      <input type="text" id="notice-input" placeholder="공지사항 제목을 입력하세요" style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px;">
-      <button id="submit-notice-btn" class="btn btn-blue">등록</button>
-    </div>
-  </div>
 
-  <div class="notice-list" id="notice-list"></div>
+  <div id="notice-list" class="notice-list"></div>
+
+  <!-- 관리자 공지 등록 패널 -->
+  <div id="admin-panel">
+    <p>🔒 관리자 모드 — 공지사항 등록</p>
+    <form id="notice-add-form">
+      <input type="text" id="notice-input" placeholder="공지사항 제목을 입력하세요" required maxlength="100">
+      <button type="submit" class="btn btn-blue btn-sm">등록</button>
+    </form>
+  </div>
 </section>
 
 <hr class="divider">
 
+<!-- JOIN -->
 <section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
   <p class="section-label">Join Us</p>
   <h2>같이 해요! 👋</h2>
-  <p class="sub" style="margin-bottom: 1.5rem;">공학도를 지망하는 모두를 환영합니다. 아래 구글폼으로 신청해주세요.</p>
-  <a href="#" class="btn btn-blue" style="font-size: 0.9rem; padding: 0.7rem 1.75rem;">가입 신청 폼 열기 →</a>
+  <p class="sub" style="margin-bottom: 1.5rem;">공학도를 지망하는 모두를 환영합니다. 아래 버튼으로 신청해주세요.</p>
+  <button id="open-join-form" class="btn btn-blue" style="font-size: 0.9rem; padding: 0.7rem 1.75rem;">가입 신청 폼 열기 →</button>
   <p style="margin-top: 1.25rem; font-size: 0.8rem; color: var(--gray);">문의: 담당 선생님께 직접 문의하세요.</p>
 </section>
 
@@ -105,10 +113,13 @@
   </div>
 </footer>
 
+
+<!-- ===== 로그인 모달 ===== -->
 <div id="login-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close" aria-label="닫기">✕</button>
 
+    <!-- 로그인 탭 -->
     <div id="login-tab">
       <h3>🔐 로그인</h3>
 
@@ -134,6 +145,7 @@
       <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
     </div>
 
+    <!-- 회원가입 탭 -->
     <div id="signup-tab" style="display:none">
       <h3>✏️ 회원가입</h3>
       <form id="email-signup-form">
@@ -150,6 +162,35 @@
       </form>
       <p class="modal-link">이미 계정이 있으신가요? <a href="#" id="go-login">로그인</a></p>
     </div>
+  </div>
+</div>
+
+
+<!-- ===== 가입 신청 모달 ===== -->
+<div id="join-modal" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" aria-label="닫기">✕</button>
+    <h3>🚀 ASTRO 가입 신청</h3>
+
+    <form id="join-form">
+      <div class="form-group">
+        <label for="join-name">이름</label>
+        <input type="text" id="join-name" placeholder="홍길동" required>
+      </div>
+      <div class="form-group">
+        <label for="join-grade">학년 / 반</label>
+        <input type="text" id="join-grade" placeholder="예) 1학년 3반" required>
+      </div>
+      <div class="form-group">
+        <label for="join-contact">연락처 (선택)</label>
+        <input type="text" id="join-contact" placeholder="전화번호 또는 이메일">
+      </div>
+      <div class="form-group">
+        <label for="join-reason">지원 동기</label>
+        <textarea id="join-reason" rows="4" placeholder="ASTRO에 지원하는 이유를 간단히 적어주세요." required></textarea>
+      </div>
+      <button type="submit" class="btn btn-blue" style="width:100%">신청하기</button>
+    </form>
   </div>
 </div>
 
