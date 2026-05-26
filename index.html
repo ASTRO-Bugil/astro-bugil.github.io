@@ -1,1 +1,436 @@
-adfc9fb2ed8dd3e2c5f8b3d81c36ae0fce8a2746
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTRO - Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --blue-mid: #dbeafe;
+    --ink: #1e293b;
+    --gray: #64748b;
+    --gray-light: #f1f5f9;
+    --border: #e2e8f0;
+    --white: #ffffff;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6%;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--white);
+    z-index: 10;
+  }
+
+  .logo {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--ink);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .nav-logo-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
+
+  .nav-links {
+    display: flex; gap: 2rem; list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.875rem;
+    color: var(--gray);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  /* HERO */
+  .hero {
+    padding: 80px 6% 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+
+  .hero-text {
+    flex: 1;
+    max-width: 520px;
+  }
+
+  .hero-logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 메인 로고 크기 및 위치 조정 (기존 유지) */
+  .hero-logo img {
+    width: 580px;
+    height: 580px;
+    object-fit: contain;
+    transform: translateX(-40px); 
+  }
+
+  .hero-tag {
+    display: inline-block;
+    background: var(--blue-light);
+    color: var(--blue);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+    color: var(--gray);
+    max-width: 480px;
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-family: inherit;
+  }
+
+  .btn-blue {
+    background: var(--blue);
+    color: var(--white);
+  }
+
+  .btn-blue:hover { background: #2563eb; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gray);
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover { background: var(--gray-light); color: var(--ink); }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 6%; }
+
+  /* SECTION */
+  section { padding: 60px 6%; }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+
+  .sub {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+  }
+
+  /* ACTIVITIES */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: var(--white);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--blue);
+    box-shadow: 0 2px 12px rgba(59,130,246,0.1);
+  }
+
+  .card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--ink);
+  }
+
+  .card p {
+    font-size: 0.825rem;
+    color: var(--gray);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* NOTICE */
+  .notice-list {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .notice-item {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--ink);
+    transition: background 0.15s;
+  }
+
+  .notice-item:last-child { border-bottom: none; }
+  .notice-item:hover { background: var(--gray-light); }
+
+  .notice-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: var(--blue-mid);
+    color: var(--blue);
+  }
+
+  .notice-badge.new {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .notice-title {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+
+  .notice-date {
+    font-size: 0.78rem;
+    color: var(--gray);
+    flex-shrink: 0;
+  }
+
+  /* MEMBERS */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .member-card {
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .member-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    margin: 0 auto 0.75rem;
+  }
+
+  .member-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+
+  .member-role {
+    font-size: 0.75rem;
+    color: var(--gray);
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 2rem 6%;
+    border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 1rem;
+  }
+
+  footer p { font-size: 0.8rem; color: var(--gray); }
+
+  .footer-links { display: flex; gap: 1.5rem; }
+
+  .footer-links a {
+    font-size: 0.8rem;
+    color: var(--gray);
+    text-decoration: none;
+  }
+
+  .footer-links a:hover { color: var(--ink); }
+
+  /* 모바일 반응형 조정 */
+  @media (max-width: 700px) {
+    .hero {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      padding-top: 48px;
+    }
+    .hero-logo img {
+      width: 200px;
+      height: 200px;
+      transform: translateX(0); /* 모바일에서는 이동 효과 해제 */
+    }
+  }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .hero h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">
+    <img src="logo.png" alt="ASTRO 로고" class="nav-logo-icon">
+    ASTRO
+  </a>
+  <ul class="nav-links">
+    <li><a href="#activities">활동보기</a></li>
+    <li><a href="#notice">공지사항</a></li>
+    <li><a href="#join">가입 신청</a></li>
+  </ul>
+</nav>
+
+<div class="hero">
+  <div class="hero-text">
+    <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
+    <h1>Bugil Academy<br>ASTRO 🚀</h1>
+    <p>20년 역사의 북일고등학교 최고의 공학 동아리입니다. 공학도를 꿈꾸는 열정적인 학생들이 모여 미래를 준비하는 배움의 공동체입니다.</p>
+    <div class="hero-btns">
+      <a href="#join" class="btn btn-blue">동아리 소개</a>
+      <a href="#activities" class="btn btn-outline">활동 보기</a>
+    </div>
+  </div>
+  <div class="hero-logo">
+    <img src="logo.png" alt="ASTRO 동아리 로고">
+  </div>
+</div>
+
+<hr class="divider">
+
+<section id="activities">
+  <p class="section-label">Activities</p>
+  <h2>이런 걸 해요</h2>
+  <p class="sub">학술 교류 행사, 공학 실험 활동, 전산유체역학 CFD 프로그램 학습 등 다양한 활동을 진행합니다.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">💻</span>
+      <h3>항공기 플랩 모형 제작</h3>
+      <p>항공기의 플랩 모형 제작 활동을 통해 유체역학과 항공우주공학을 심화 탐구합니다.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🏆</span>
+      <h3>대회 참가</h3>
+      <p>국립중앙과학관에서 개최하는 전국 과학 전람회에 참가합니다.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🛠️</span>
+      <h3>CNC 로켓 실험</h3>
+      <p>CNC 공법으로 제작한 로켓 본체와 고체연료를 통해 로켓을 발사하는 실험을 진행합니다.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🎤</span>
+      <h3>학술 교류</h3>
+      <p>한민고등학교, 용인외국어대학교부설고등학교, 경기북과학고등학교와 학술 교류를 진행합니다.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="notice">
+  <p class="section-label">Notice</p>
+  <h2>공지사항</h2>
+  <p class="sub">최근 소식을 확인하세요.</p>
+  <div class="notice-list">
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
+  <p class="section-label">Join Us</p>
+  <h2>같이 해요! 👋</h2>
+  <p class="sub" style="margin-bottom: 1.5rem;">공학도를 지망하는 모두를 환영합니다. 아래 구글폼으로 신청해주세요.</p>
+  <a href="#" class="btn btn-blue" style="font-size: 0.9rem; padding: 0.7rem 1.75rem;">가입 신청 폼 열기 →</a>
+  <p style="margin-top: 1.25rem; font-size: 0.8rem; color: var(--gray);">문의: 기장님 이름 넣어도 되나"</p>
+</section>
+
+<footer>
+  <p>© 2026 ASTRO - Bugil Academy · 지도교사: 차미숙 선생님, 이현 선생님</p>
+  <div class="footer-links">
+    <a href="#">인스타그램</a>
+    <a href="#">깃허브</a>
+  </div>
+</footer>
+
+</body>
+</html>
