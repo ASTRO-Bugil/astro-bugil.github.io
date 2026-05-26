@@ -1,10 +1,10 @@
-// Firebase SDK 불러오기 (CDN)
+// Firebase SDK 불러오기
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 사용자의 Firebase Config
+// 사용자 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
   authDomain: "astro-bugil-a1dd7.firebaseapp.com",
@@ -22,51 +22,107 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// ★ 여기에 관리자(기장님)로 사용할 실제 구글 이메일을 정확히 입력하세요 ★
-const ADMIN_EMAIL = "yunthomas0120@gmail.com"; 
+// ★ 여기에 관리자 이메일을 정확히 입력하세요 ★
+const ADMIN_EMAIL = "여기에_관리자_이메일_입력@gmail.com"; 
 
-// DOM 요소 가져오기
+// DOM 요소 (네비게이션)
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const userNameDisplay = document.getElementById('user-name-display');
+
+// DOM 요소 (글쓰기)
 const adminPanel = document.getElementById('admin-panel');
 const submitNoticeBtn = document.getElementById('submit-notice-btn');
 const noticeTitleInput = document.getElementById('notice-title');
 const noticeList = document.getElementById('notice-list');
 
-// 로그인 상태 감지 및 관리자 권한 확인
+// DOM 요소 (모달 팝업)
+const loginModal = document.getElementById('login-modal');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const googleLoginBtn = document.getElementById('google-login-btn');
+const emailLoginBtn = document.getElementById('email-login-btn');
+const emailInput = document.getElementById('email-input');
+const passwordInput = document.getElementById('password-input');
+
+// 1. 로그인 상태 감지 및 UI 업데이트
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     
-    // 현재 로그인한 이메일이 관리자 이메일과 일치하는지 확인
+    const displayName = user.displayName || user.email.split('@')[0];
+    
+    // 관리자 여부 확인
     if (user.email === ADMIN_EMAIL) {
       adminPanel.style.display = 'block'; 
+      userNameDisplay.textContent = `⭐ ${displayName} (관리자)`;
     } else {
       adminPanel.style.display = 'none';
-      alert('관리자 권한이 없습니다. 일반 방문자 환영합니다!');
+      userNameDisplay.textContent = `${displayName}님 환영합니다`;
     }
+    
+    userNameDisplay.style.display = 'inline-block';
+    loginModal.style.display = 'none'; // 로그인 성공 시 모달 닫기
   } else {
     loginBtn.style.display = 'inline-block';
     logoutBtn.style.display = 'none';
     adminPanel.style.display = 'none'; 
+    userNameDisplay.style.display = 'none';
+    userNameDisplay.textContent = '';
   }
 });
 
-// 로그인
+// 2. 모달 열기 / 닫기
 loginBtn.addEventListener('click', () => {
-  signInWithPopup(auth, provider)
-    .catch((error) => console.error("로그인 에러:", error));
+  loginModal.style.display = 'flex';
 });
 
-// 로그아웃
+closeModalBtn.addEventListener('click', () => {
+  loginModal.style.display = 'none';
+});
+
+window.addEventListener('click', (e) => {
+  if (e.target === loginModal) {
+    loginModal.style.display = 'none';
+  }
+});
+
+// 3. 로그인 / 로그아웃 기능
+googleLoginBtn.addEventListener('click', () => {
+  signInWithPopup(auth, provider)
+    .catch((error) => {
+      console.error("구글 로그인 에러:", error);
+      alert("로그인 중 오류가 발생했습니다.");
+    });
+});
+
+emailLoginBtn.addEventListener('click', () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert("이메일과 비밀번호를 모두 입력해주세요.");
+    return;
+  }
+
+  signInWithEmailAndPassword(auth, email, password)
+    .then(() => {
+      emailInput.value = '';
+      passwordInput.value = '';
+    })
+    .catch((error) => {
+      console.error("이메일 로그인 에러:", error);
+      alert("이메일이나 비밀번호가 올바르지 않습니다.");
+    });
+});
+
 logoutBtn.addEventListener('click', () => {
   signOut(auth).then(() => {
     alert("로그아웃 되었습니다.");
   }).catch((error) => console.error("로그아웃 에러:", error));
 });
 
-// 공지사항 불러오기
+// 4. 공지사항 데이터 불러오기
 async function loadNotices() {
   noticeList.innerHTML = ''; 
   
@@ -98,7 +154,7 @@ async function loadNotices() {
   }
 }
 
-// 공지사항 작성하기
+// 5. 공지사항 데이터 쓰기
 submitNoticeBtn.addEventListener('click', async () => {
   const title = noticeTitleInput.value.trim();
   if (title === "") {
@@ -122,6 +178,5 @@ submitNoticeBtn.addEventListener('click', async () => {
   }
 });
 
-// 최초 로드 시 실행
+// 6. 페이지 로드 완료 시 공지사항 목록 표시
 window.addEventListener('DOMContentLoaded', loadNotices);
-
