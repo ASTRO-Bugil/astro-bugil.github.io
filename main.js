@@ -102,13 +102,7 @@ onAuthStateChanged(auth, user => {
   if (user) {
     loginBtn.style.display  = 'none';
     logoutBtn.style.display = 'inline-block';
-    
-    // 구글 프로필 이름이 없을 경우 이메일 앞부분 사용
-    const userName = user.displayName || user.email.split('@')[0];
-    
-    // 관리자일 경우 컴퓨터 아이콘 💻 추가
-    const label = isAdmin(user) ? '💻 ' + userName : userName;
-    
+    const label = isAdmin(user) ? '👑 ' + user.email : (user.displayName || user.email);
     userInfo.textContent = label;
     userInfo.style.display = 'inline';
     if (adminPanel) adminPanel.style.display = isAdmin(user) ? 'block' : 'none';
@@ -127,15 +121,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   /* 로그인 버튼 → 모달 열기 */
   document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
-  
-  /* 로그아웃 버튼 → 로그아웃 실행 및 알림창 띄우기 */
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    signOut(auth).then(() => {
-      alert('로그아웃 되었습니다.');
-    }).catch((error) => {
-      console.error('로그아웃 에러:', error);
-    });
-  });
+  document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
   /* 모달 닫기 */
   document.querySelectorAll('.modal-close').forEach(btn => {
