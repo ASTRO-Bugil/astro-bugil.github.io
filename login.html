@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 로그인 - ASTRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #3b82f6;
+    --ink: #1e293b;
+    --gray: #64748b;
+    --border: #e2e8f0;
+    --white: #ffffff;
+    --bg: #f8fafc;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  .login-container {
+    background: var(--white);
+    padding: 3rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .logo img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  .desc {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    font-family: inherit;
+    background: var(--white);
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+  }
+
+  .btn:hover {
+    background: var(--bg);
+  }
+
+  .btn-google {
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+  }
+
+  .btn-google:hover {
+    background: #2563eb;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="logo">
+    <img src="logo.png" alt="ASTRO 로고">
+    ASTRO
+  </div>
+  <p class="desc">북일고등학교 ASTRO 동아리 관리자 페이지</p>
+
+  <button class="btn btn-google" id="googleLoginBtn">
+    Google 계정으로 로그인
+  </button>
+  
+  <a href="index.html" class="btn">
+    메인으로 돌아가기
+  </a>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
+    authDomain: "astro-bugil-a1dd7.firebaseapp.com",
+    projectId: "astro-bugil-a1dd7",
+    storageBucket: "astro-bugil-a1dd7.firebasestorage.app",
+    messagingSenderId: "751134919017",
+    appId: "1:751134919017:web:814be1b6b5cefb09c595f8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // 이미 로그인된 상태라면 메인 페이지로 튕겨내기
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.location.href = 'index.html';
+    }
+  });
+
+  // 구글 로그인 버튼 클릭 시
+  document.getElementById('googleLoginBtn').addEventListener('click', () => {
+    signInWithPopup(auth, provider)
+      .then(() => {
+        // 로그인 성공 시 메인 페이지로 이동
+        window.location.href = 'index.html';
+      })
+      .catch((error) => {
+        console.error("로그인 에러:", error);
+      });
+  });
+</script>
+
+</body>
+</html>
