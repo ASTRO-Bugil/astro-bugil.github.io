@@ -18,9 +18,7 @@
     <li><a href="#activities">활동보기</a></li>
     <li><a href="#notice">공지사항</a></li>
     <li><a href="#join">가입 신청</a></li>
-    
-    <li><span id="user-name-display" style="display: none; font-weight: 600; font-size: 0.9rem; color: var(--blue);"></span></li>
-    
+    <li><span id="user-info" style="display: none; font-weight: 600; font-size: 0.85rem; color: var(--blue);"></span></li>
     <li><button id="login-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">로그인</button></li>
     <li><button id="logout-btn" class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; display: none;">로그아웃</button></li>
   </ul>
@@ -78,14 +76,15 @@
   <h2>공지사항</h2>
   <p class="sub">최근 소식을 확인하세요.</p>
   
-  <div id="admin-panel" style="display: none; background: var(--gray-light); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-    <h3 style="margin-bottom: 1rem; font-size: 1rem;">새 공지사항 작성 (관리자 전용)</h3>
-    <input type="text" id="notice-title" placeholder="공지사항 제목을 입력하세요" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem;">
-    <button id="submit-notice-btn" class="btn btn-blue">공지 올리기</button>
+  <div id="admin-panel" style="display: none; background: var(--blue-light); border: 1px dashed var(--blue); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--blue);">🔒 관리자 모드 — 새 공지사항 작성</h3>
+    <div style="display: flex; gap: 0.5rem;">
+      <input type="text" id="notice-input" placeholder="공지사항 제목을 입력하세요" style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px;">
+      <button id="submit-notice-btn" class="btn btn-blue">등록</button>
+    </div>
   </div>
 
-  <div class="notice-list" id="notice-list">
-    </div>
+  <div class="notice-list" id="notice-list"></div>
 </section>
 
 <hr class="divider">
@@ -95,7 +94,7 @@
   <h2>같이 해요! 👋</h2>
   <p class="sub" style="margin-bottom: 1.5rem;">공학도를 지망하는 모두를 환영합니다. 아래 구글폼으로 신청해주세요.</p>
   <a href="#" class="btn btn-blue" style="font-size: 0.9rem; padding: 0.7rem 1.75rem;">가입 신청 폼 열기 →</a>
-  <p style="margin-top: 1.25rem; font-size: 0.8rem; color: var(--gray);">문의: 기장님 연락처 또는 이메일</p>
+  <p style="margin-top: 1.25rem; font-size: 0.8rem; color: var(--gray);">문의: 담당 선생님께 직접 문의하세요.</p>
 </section>
 
 <footer>
@@ -107,19 +106,50 @@
 </footer>
 
 <div id="login-modal" class="modal-overlay">
-  <div class="modal-content">
-    <button id="close-modal-btn" class="close-btn">&times;</button>
-    <h3 style="margin-bottom: 1.5rem; text-align: center;">로그인</h3>
-    
-    <button id="google-login-btn" class="btn btn-outline" style="width: 100%; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
-      <span>🌐 구글 계정으로 로그인</span>
-    </button>
-    
-    <div style="text-align: center; margin: 1rem 0; font-size: 0.8rem; color: var(--gray);">또는 이메일로 로그인</div>
-    
-    <input type="email" id="email-input" placeholder="이메일 주소" class="modal-input">
-    <input type="password" id="password-input" placeholder="비밀번호" class="modal-input">
-    <button id="email-login-btn" class="btn btn-blue" style="width: 100%;">이메일로 로그인</button>
+  <div class="modal">
+    <button class="modal-close" aria-label="닫기">✕</button>
+
+    <div id="login-tab">
+      <h3>🔐 로그인</h3>
+
+      <button id="google-login-btn" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Google로 로그인
+      </button>
+
+      <div class="divider-text">또는 이메일로 로그인</div>
+
+      <form id="email-login-form">
+        <div class="form-group">
+          <label for="login-email">이메일</label>
+          <input type="email" id="login-email" placeholder="example@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-pw">비밀번호</label>
+          <input type="password" id="login-pw" placeholder="비밀번호" required>
+        </div>
+        <p id="login-error" class="form-error"></p>
+        <button type="submit" class="btn btn-blue" style="width:100%">로그인</button>
+      </form>
+      <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
+    </div>
+
+    <div id="signup-tab" style="display:none">
+      <h3>✏️ 회원가입</h3>
+      <form id="email-signup-form">
+        <div class="form-group">
+          <label for="signup-email">이메일</label>
+          <input type="email" id="signup-email" placeholder="example@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-pw">비밀번호 (6자 이상)</label>
+          <input type="password" id="signup-pw" placeholder="비밀번호" required minlength="6">
+        </div>
+        <p id="signup-error" class="form-error"></p>
+        <button type="submit" class="btn btn-blue" style="width:100%">가입하기</button>
+      </form>
+      <p class="modal-link">이미 계정이 있으신가요? <a href="#" id="go-login">로그인</a></p>
+    </div>
   </div>
 </div>
 
