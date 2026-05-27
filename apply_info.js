@@ -18,6 +18,25 @@ const list = document.getElementById('list');
 let apps = [];
 let current = 'all';
 
+import {
+  auth,
+  isOwner
+} from './firebase-config.js';
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+onAuthStateChanged(auth, user => {
+
+  if (!isOwner(user)) {
+
+    alert('운영담당자만 접근 가능합니다.');
+
+    location.href = 'index.html';
+  }
+});
+
 async function loadApps() {
 
   const snap = await getDocs(
