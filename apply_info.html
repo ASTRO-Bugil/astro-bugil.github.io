@@ -4,146 +4,55 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>가입 신청 관리</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-
 <style>
-body{
-  font-family:'Noto Sans KR',sans-serif;
-  margin:0;
-  background:#fff;
-  color:#1e293b;
-}
+body{ font-family:'Noto Sans KR',sans-serif; margin:0; background:#fff; color:#1e293b; }
+header{ padding:24px 6%; border-bottom:1px solid #e2e8f0; }
+.container{ padding:40px 6%; display:flex; gap:2rem; }
 
-header{
-  padding:24px 6%;
-  border-bottom:1px solid #e2e8f0;
-}
+/* Main Content Area */
+.content{ flex:1; }
+.header-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.header-row h2{ margin:0; font-size:1.4rem; }
 
-.container{
-  padding:40px 6%;
-}
+.list{ display:flex; flex-direction:column; gap:.75rem; }
+.item{ border:1px solid #e2e8f0; border-radius:14px; padding:1rem; display:flex; justify-content:space-between; align-items:center; transition:background 0.2s; cursor:pointer;}
+.item:hover{ background:#f8fafc; }
+.left{ flex:1; }
+.name{ font-weight:700; margin-bottom:0.25rem; }
+.sub{ color:#64748b; font-size:.85rem; }
+.status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; margin-left: 0.5rem; font-weight: 500; }
+.status-pending { background: #e2e8f0; color: #475569; }
+.status-accepted { background: #ecfdf5; color: #10b981; }
+.status-rejected { background: #fef2f2; color: #dc2626; }
 
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:1rem;
-  margin-bottom:2rem;
-}
+.actions{ display:flex; gap:.5rem; }
+.btn{ border:none; padding:.55rem .9rem; border-radius:8px; cursor:pointer; font-family:inherit; font-size:0.85rem; font-weight:500; transition:opacity 0.2s; }
+.btn:hover{ opacity:0.8; }
+.pass{ background:#10b981; color:white; }
+.fail{ background:#dc2626; color:white; }
+.reset{ background:#e2e8f0; color:#475569; }
+.delete{ background:#f1f5f9; color:#dc2626; border: 1px solid #e2e8f0; }
 
-.card{
-  border:1px solid #e2e8f0;
-  border-radius:14px;
-  padding:1.2rem;
-}
+/* Sidebar (VS Code Style) */
+.sidebar{ width:260px; flex-shrink:0; border-left:1px solid #e2e8f0; padding-left:1.5rem; }
+.sidebar-title { font-size:0.9rem; font-weight:600; color:#64748b; margin-bottom:1rem; text-transform:uppercase; letter-spacing:0.05em; }
+.tabs{ display:flex; flex-direction:column; gap:.5rem; }
+.tab{ border:1px solid transparent; background:transparent; padding:.8rem 1rem; border-radius:10px; cursor:pointer; text-align:left; font-size:0.95rem; font-family:inherit; color:#475569; transition:all 0.2s; }
+.tab:hover{ background:#f8fafc; }
+.tab.active{ background:#eff6ff; color:#3b82f6; border-color:#dbeafe; font-weight:600; }
+.tab-count { float:right; background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:500; }
+.tab.active .tab-count { background:#3b82f6; color:#fff; }
 
-.value{
-  font-size:2rem;
-  font-weight:700;
-}
+/* Modal */
+.modal-wrap{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:1rem; z-index:100;}
+.modal{ background:white; width:100%; max-width:700px; border-radius:18px; padding:2rem; max-height:90vh; overflow:auto; position:relative; }
+.modal-close { position:absolute; top:1.5rem; right:1.5rem; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#64748b; }
+pre{ white-space:pre-wrap; line-height:1.7; font-family:inherit; font-size:0.9rem; background:#f8fafc; padding:1rem; border-radius:10px; margin-top:0.5rem; }
 
-.label{
-  color:#64748b;
-}
-
-.tabs{
-  display:flex;
-  gap:.5rem;
-  margin-bottom:1rem;
-}
-
-.tab{
-  border:none;
-  padding:.7rem 1.1rem;
-  border-radius:10px;
-  cursor:pointer;
-}
-
-.tab.active{
-  background:#3b82f6;
-  color:white;
-}
-
-.list{
-  display:flex;
-  flex-direction:column;
-  gap:.75rem;
-}
-
-.item{
-  border:1px solid #e2e8f0;
-  border-radius:14px;
-  padding:1rem;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.left{
-  cursor:pointer;
-}
-
-.name{
-  font-weight:700;
-}
-
-.sub{
-  color:#64748b;
-  font-size:.9rem;
-}
-
-.actions{
-  display:flex;
-  gap:.5rem;
-}
-
-.btn{
-  border:none;
-  padding:.55rem .9rem;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.pass{
-  background:#10b981;
-  color:white;
-}
-
-.fail{
-  background:#dc2626;
-  color:white;
-}
-
-.delete{
-  background:#e2e8f0;
-}
-
-.modal-wrap{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  align-items:center;
-  justify-content:center;
-}
-
-.modal{
-  background:white;
-  width:90%;
-  max-width:700px;
-  border-radius:18px;
-  padding:2rem;
-  max-height:90vh;
-  overflow:auto;
-}
-
-pre{
-  white-space:pre-wrap;
-  line-height:1.7;
-}
+@media(max-width:800px){ .container{ flex-direction:column-reverse; } .sidebar{ width:100%; border-left:none; padding-left:0; border-bottom:1px solid #e2e8f0; padding-bottom:1.5rem; } }
 </style>
 </head>
-
 <body>
 
 <header>
@@ -151,51 +60,32 @@ pre{
 </header>
 
 <div class="container">
-
-  <div class="stats">
-
-    <div class="card">
-      <div class="value" id="totalCount">0</div>
-      <div class="label">전체</div>
+  <div class="content">
+    <div class="header-row">
+      <h2 id="current-tab-title">전체 신청자</h2>
+      <button class="btn delete" id="delete-all-btn">모든 신청 삭제</button>
     </div>
-
-    <div class="card">
-      <div class="value" id="pendingCount">0</div>
-      <div class="label">대기</div>
-    </div>
-
-    <div class="card">
-      <div class="value" id="passCount">0</div>
-      <div class="label">합격</div>
-    </div>
-
-    <div class="card">
-      <div class="value" id="failCount">0</div>
-      <div class="label">불합격</div>
-    </div>
-
+    <div class="list" id="list"></div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" data-status="all">전체</button>
-    <button class="tab" data-status="pending">대기</button>
-    <button class="tab" data-status="accepted">합격</button>
-    <button class="tab" data-status="rejected">불합격</button>
+  <div class="sidebar">
+    <div class="sidebar-title">필터</div>
+    <div class="tabs">
+      <button class="tab active" data-status="all">전체 <span class="tab-count" id="totalCount">0</span></button>
+      <button class="tab" data-status="accepted">합격자 <span class="tab-count" id="passCount">0</span></button>
+      <button class="tab" data-status="rejected">불합격자 <span class="tab-count" id="failCount">0</span></button>
+    </div>
   </div>
-
-  <div class="list" id="list"></div>
-
 </div>
 
 <div class="modal-wrap" id="modalWrap">
   <div class="modal">
-    <h2 id="modalTitle"></h2>
-    <pre id="modalContent"></pre>
+    <button class="modal-close" id="closeModalBtn">✕</button>
+    <h2 id="modalTitle" style="margin-top:0;"></h2>
+    <div id="modalContent"></div>
   </div>
 </div>
 
 <script type="module" src="apply_info.js"></script>
-
 </body>
 </html>
-
