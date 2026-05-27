@@ -19,6 +19,13 @@
     --border: #e2e8f0;
     --white: #ffffff;
     --red: #dc2626;
+    --red-light: #fef2f2;
+    --orange: #f59e0b;
+    --orange-light: #fffbeb;
+    --green: #10b981;
+    --green-light: #ecfdf5;
+    --purple: #8b5cf6;
+    --purple-light: #f5f3ff;
   }
 
   body {
@@ -29,6 +36,48 @@
     line-height: 1.7;
     font-weight: 400;
   }
+
+  /* ===== SITE BANNER ===== */
+  #site-banner {
+    display: none;
+    width: 100%;
+    padding: 0.75rem 6%;
+    font-size: 0.85rem;
+    font-weight: 500;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    position: relative;
+    z-index: 50;
+  }
+
+  #site-banner.banner-info    { background: var(--blue-light);   color: var(--blue);   border-bottom: 1px solid var(--blue-mid); }
+  #site-banner.banner-warning { background: var(--orange-light);  color: #b45309;       border-bottom: 1px solid #fde68a; }
+  #site-banner.banner-danger  { background: var(--red-light);    color: var(--red);    border-bottom: 1px solid #fecaca; }
+
+  .banner-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; }
+  .banner-icon { font-size: 1rem; flex-shrink: 0; }
+  .banner-text { line-height: 1.5; }
+
+  .banner-actions { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+
+  .banner-dismiss {
+    font-size: 0.75rem; color: inherit; opacity: 0.7;
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+    padding: 4px 8px; border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .banner-dismiss:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+
+  .banner-close {
+    background: none; border: none; cursor: pointer;
+    color: inherit; opacity: 0.5; font-size: 1.1rem; line-height: 1;
+    transition: opacity 0.15s;
+  }
+
+  .banner-close:hover { opacity: 1; }
 
   /* NAV */
   nav {
@@ -57,7 +106,7 @@
 
   #user-info {
     font-size: 0.8rem; color: var(--gray);
-    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     display: none;
   }
 
@@ -103,7 +152,14 @@
   .btn-outline { background: transparent; color: var(--gray); border: 1px solid var(--border); }
   .btn-outline:hover { background: var(--gray-light); color: var(--ink); }
 
+  .btn-red { background: var(--red); color: var(--white); }
+  .btn-red:hover { background: #b91c1c; }
+
+  .btn-green { background: var(--green); color: var(--white); }
+  .btn-green:hover { background: #059669; }
+
   .btn-sm { padding: 0.45rem 1rem; font-size: 0.8rem; }
+  .btn-xs { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
 
   /* DIVIDER */
   .divider { border: none; border-top: 1px solid var(--border); margin: 0 6%; }
@@ -223,6 +279,8 @@
     max-width: 420px;
     position: relative;
     animation: modal-in 0.2s ease;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
   @keyframes modal-in {
@@ -294,23 +352,247 @@
   .modal-link a { color: var(--blue); text-decoration: none; }
   .modal-link a:hover { text-decoration: underline; }
 
-  /* 가입신청 모달 */
-  #join-modal .modal { max-width: 480px; }
+  /* ===== OWNER CONSOLE MODAL ===== */
+  #console-modal .modal { max-width: 700px; padding: 0; overflow: hidden; }
+
+  .console-header {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .console-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--ink); margin: 0; }
+
+  .console-badge {
+    font-size: 0.7rem; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    color: white; letter-spacing: 0.05em;
+  }
+
+  .console-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--gray-light);
+    overflow-x: auto;
+  }
+
+  .console-tab {
+    padding: 0.75rem 1.25rem; font-size: 0.82rem; font-weight: 500;
+    color: var(--gray); cursor: pointer; border: none; background: none;
+    font-family: inherit; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .console-tab:hover { color: var(--ink); }
+  .console-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: var(--white); }
+
+  .console-body { padding: 1.5rem 2rem; min-height: 340px; }
+
+  .console-panel { display: none; }
+  .console-panel.active { display: block; }
+
+  .console-section-title {
+    font-size: 0.8rem; font-weight: 600; color: var(--gray);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 1rem;
+  }
+
+  /* 관리자 목록 */
+  .admin-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
+
+  .admin-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--white);
+  }
+
+  .admin-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--blue-mid); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 600; flex-shrink: 0;
+  }
+
+  .admin-avatar.owner { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; }
+
+  .admin-info { flex: 1; min-width: 0; }
+  .admin-email { font-size: 0.85rem; font-weight: 500; color: var(--ink); truncate: ellipsis; }
+  .admin-role { font-size: 0.75rem; color: var(--gray); }
+
+  .admin-role-badge {
+    font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  .admin-role-badge.owner { background: var(--purple-light); color: var(--purple); }
+  .admin-role-badge.admin { background: var(--blue-mid); color: var(--blue); }
+
+  /* 배너 관리 */
+  .banner-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .banner-type-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+  }
+
+  .banner-type-btn {
+    padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 8px;
+    background: none; cursor: pointer; font-family: inherit; font-size: 0.8rem;
+    font-weight: 500; transition: all 0.15s; text-align: center;
+  }
+
+  .banner-type-btn:hover { border-color: var(--blue); }
+  .banner-type-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+
+  .banner-preview {
+    padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.82rem;
+    display: none; align-items: center; gap: 0.5rem;
+  }
+
+  .banner-preview.visible { display: flex; }
+
+  /* 신청자 목록 */
+  .applicant-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .applicant-item {
+    border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .applicant-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem; cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .applicant-header:hover { background: var(--gray-light); }
+
+  .applicant-name { font-size: 0.875rem; font-weight: 500; flex: 1; }
+
+  .applicant-grade { font-size: 0.78rem; color: var(--gray); }
+
+  .applicant-status {
+    font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  }
+
+  .applicant-status.pending  { background: #fef3c7; color: #d97706; }
+  .applicant-status.approved { background: var(--green-light); color: var(--green); }
+  .applicant-status.rejected { background: var(--red-light); color: var(--red); }
+
+  .applicant-detail {
+    display: none; padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--gray-light);
+  }
+
+  .applicant-detail.open { display: block; }
+
+  .applicant-detail p { font-size: 0.82rem; color: var(--gray); margin-bottom: 0.5rem; }
+  .applicant-detail strong { color: var(--ink); }
+
+  .applicant-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+
+  /* 통계 카드 */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+
+  .stat-card {
+    padding: 1rem; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--white);
+  }
+
+  .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--ink); line-height: 1; }
+  .stat-label { font-size: 0.78rem; color: var(--gray); margin-top: 0.25rem; }
+
+  /* 빈 상태 */
+  .empty-state {
+    text-align: center; padding: 2.5rem 1rem;
+    color: var(--gray); font-size: 0.875rem;
+  }
+
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
+
+  /* 입력 행 */
+  .input-row { display: flex; gap: 0.5rem; }
+  .input-row input { flex: 1; }
 
   /* 모바일 */
   @media (max-width: 700px) {
     .hero { flex-direction: column-reverse; align-items: flex-start; padding-top: 48px; }
     .hero-logo img { width: 200px; height: 200px; transform: translateX(0); }
     .nav-links { display: none; }
+    #console-modal .modal { max-width: 100%; border-radius: 12px; }
+    .stats-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 600px) {
     .hero h1 { font-size: 1.8rem; }
   }
+
+  /* 드롭다운 + 콘솔 접근 */
+  .nav-menu-wrap { position: relative; }
+
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    min-width: 160px; overflow: hidden;
+    display: none; z-index: 200;
+    animation: modal-in 0.15s ease;
+  }
+
+  .nav-dropdown.open { display: block; }
+
+  .nav-dropdown button {
+    width: 100%; text-align: left; padding: 0.6rem 1rem;
+    background: none; border: none; cursor: pointer;
+    font-size: 0.85rem; font-family: inherit; color: var(--ink);
+    transition: background 0.15s;
+  }
+
+  .nav-dropdown button:hover { background: var(--gray-light); }
+  .nav-dropdown button.danger { color: var(--red); }
+
+  .dropdown-divider { height: 1px; background: var(--border); }
+
+  /* 토스트 */
+  #toast-container {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    z-index: 9999;
+  }
+
+  .toast {
+    padding: 0.75rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    animation: toast-in 0.25s ease;
+    max-width: 300px;
+  }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .toast-success { background: var(--green); color: white; }
+  .toast-error   { background: var(--red);   color: white; }
+  .toast-info    { background: var(--blue);  color: white; }
 </style>
 </head>
 <body>
 
+<!-- ===== SITE BANNER ===== -->
+<div id="site-banner">
+  <div class="banner-left">
+    <span class="banner-icon" id="banner-icon">📢</span>
+    <span class="banner-text" id="banner-text"></span>
+  </div>
+  <div class="banner-actions">
+    <button class="banner-dismiss" id="banner-dismiss-today">오늘 하루 보지 않기</button>
+    <button class="banner-close" id="banner-close" aria-label="닫기">✕</button>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
 <nav>
   <a href="#" class="logo">
     <img src="logo.png" alt="ASTRO 로고" class="nav-logo-icon">
@@ -324,10 +606,20 @@
   <div class="nav-right">
     <span id="user-info"></span>
     <button id="login-btn" class="btn btn-outline btn-sm">로그인</button>
-    <button id="logout-btn" class="btn btn-outline btn-sm" style="display:none">로그아웃</button>
+
+    <!-- 로그인 후 드롭다운 -->
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <button id="open-console-btn" style="display:none">🖥️ 운영자 콘솔</button>
+        <div class="dropdown-divider" id="console-divider" style="display:none"></div>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
   </div>
 </nav>
 
+<!-- ===== HERO ===== -->
 <div class="hero">
   <div class="hero-text">
     <span class="hero-tag">북일고등학교 항공우주·기계공학 동아리</span>
@@ -345,6 +637,7 @@
 
 <hr class="divider">
 
+<!-- ===== ACTIVITIES ===== -->
 <section id="activities">
   <p class="section-label">Activities</p>
   <h2>이런 걸 해요</h2>
@@ -375,6 +668,7 @@
 
 <hr class="divider">
 
+<!-- ===== NOTICE ===== -->
 <section id="notice">
   <p class="section-label">Notice</p>
   <h2>공지사항</h2>
@@ -393,6 +687,7 @@
 
 <hr class="divider">
 
+<!-- ===== JOIN ===== -->
 <section id="join" style="background: var(--gray-light); border-radius: 16px; margin: 0 0 2rem; max-width: calc(100% - 12%);">
   <p class="section-label">Join Us</p>
   <h2>같이 해요! 👋</h2>
@@ -409,20 +704,21 @@
   </div>
 </footer>
 
+<!-- ===== 토스트 컨테이너 ===== -->
+<div id="toast-container"></div>
+
+<!-- ===== LOGIN MODAL ===== -->
 <div id="login-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close" aria-label="닫기">✕</button>
 
     <div id="login-tab">
       <h3>🔐 로그인</h3>
-
       <button id="google-login-btn" class="btn-google">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
         Google로 로그인
       </button>
-
       <div class="divider-text">또는 이메일로 로그인</div>
-
       <form id="email-login-form">
         <div class="form-group">
           <label for="login-email">이메일</label>
@@ -457,11 +753,11 @@
   </div>
 </div>
 
+<!-- ===== JOIN MODAL ===== -->
 <div id="join-modal" class="modal-overlay">
   <div class="modal" style="max-width:480px">
     <button class="modal-close" aria-label="닫기">✕</button>
     <h3>🚀 ASTRO 가입 신청</h3>
-
     <form id="join-form">
       <div class="form-group">
         <label for="join-name">이름</label>
@@ -484,7 +780,132 @@
   </div>
 </div>
 
-<script type="module" src="main.js"></script>
+<!-- ===== OWNER CONSOLE MODAL ===== -->
+<div id="console-modal" class="modal-overlay">
+  <div class="modal" style="max-width:700px; padding:0;">
+    <div class="console-header">
+      <h3>🖥️ 운영자 콘솔</h3>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span class="console-badge">OWNER</span>
+        <button class="modal-close" style="position:static;font-size:1.2rem;" aria-label="닫기">✕</button>
+      </div>
+    </div>
 
+    <div class="console-tabs">
+      <button class="console-tab active" data-tab="overview">📊 개요</button>
+      <button class="console-tab" data-tab="admins">👥 관리자 관리</button>
+      <button class="console-tab" data-tab="banner">📢 사이트 배너</button>
+      <button class="console-tab" data-tab="applicants">📋 신청자 목록</button>
+      <button class="console-tab" data-tab="notices">📝 공지 관리</button>
+    </div>
+
+    <div class="console-body">
+
+      <!-- 개요 패널 -->
+      <div class="console-panel active" id="panel-overview">
+        <p class="console-section-title">사이트 현황</p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-notices">—</div>
+            <div class="stat-label">등록된 공지사항</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-applicants">—</div>
+            <div class="stat-label">전체 가입 신청</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-pending">—</div>
+            <div class="stat-label">검토 대기 신청</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-admins">—</div>
+            <div class="stat-label">임명된 관리자</div>
+          </div>
+        </div>
+        <p class="console-section-title" style="margin-top:1.5rem;">빠른 작업</p>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="switchConsoleTab('banner')">📢 배너 수정</button>
+          <button class="btn btn-outline btn-sm" onclick="switchConsoleTab('admins')">👥 관리자 추가</button>
+          <button class="btn btn-outline btn-sm" onclick="switchConsoleTab('applicants')">📋 신청 검토</button>
+        </div>
+      </div>
+
+      <!-- 관리자 패널 -->
+      <div class="console-panel" id="panel-admins">
+        <p class="console-section-title">현재 관리자 목록</p>
+        <div class="admin-list" id="console-admin-list">
+          <div style="color:var(--gray);font-size:0.85rem;padding:0.5rem 0;">불러오는 중...</div>
+        </div>
+        <p class="console-section-title">새 관리자 추가</p>
+        <p style="font-size:0.8rem;color:var(--gray);margin-bottom:0.75rem;">
+          추가된 관리자는 공지사항 등록·삭제 권한을 갖습니다.<br>
+          단, 새로운 관리자를 임명하는 권한은 운영담당자 전용입니다.
+        </p>
+        <div class="input-row">
+          <input type="email" id="new-admin-email" placeholder="추가할 관리자 이메일" style="flex:1;padding:0.55rem 0.85rem;border:1px solid var(--border);border-radius:8px;font-size:0.875rem;font-family:inherit;outline:none;">
+          <button class="btn btn-blue btn-sm" id="add-admin-btn">추가</button>
+        </div>
+        <p id="admin-add-error" class="form-error"></p>
+      </div>
+
+      <!-- 배너 패널 -->
+      <div class="console-panel" id="panel-banner">
+        <p class="console-section-title">현재 배너 상태</p>
+        <div id="current-banner-info" style="margin-bottom:1.25rem;padding:0.75rem 1rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--gray);">
+          배너 정보 불러오는 중...
+        </div>
+
+        <p class="console-section-title">배너 설정</p>
+        <div class="banner-form">
+          <div>
+            <label style="font-size:0.8rem;font-weight:500;color:var(--gray);display:block;margin-bottom:0.5rem;">배너 유형</label>
+            <div class="banner-type-grid">
+              <button class="banner-type-btn selected" data-type="info">ℹ️ 안내</button>
+              <button class="banner-type-btn" data-type="warning">⚠️ 경고</button>
+              <button class="banner-type-btn" data-type="danger">🚨 긴급</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;font-weight:500;color:var(--gray);display:block;margin-bottom:0.35rem;">배너 메시지</label>
+            <input type="text" id="banner-msg-input" placeholder="예) 🔧 오늘 오후 2시~4시 서버 점검이 예정되어 있습니다." style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--border);border-radius:8px;font-size:0.875rem;font-family:inherit;outline:none;" maxlength="200">
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="checkbox" id="banner-dismissible" checked style="width:auto;">
+            <label for="banner-dismissible" style="font-size:0.85rem;color:var(--ink);margin:0;">"오늘 하루 보지 않기" 버튼 표시</label>
+          </div>
+          <div id="banner-preview-box" class="banner-preview">
+            <span id="preview-icon">📢</span>
+            <span id="preview-text" style="font-size:0.82rem;font-weight:500;"></span>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn btn-blue btn-sm" id="save-banner-btn">배너 게시</button>
+            <button class="btn btn-outline btn-sm" id="remove-banner-btn">배너 제거</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 신청자 패널 -->
+      <div class="console-panel" id="panel-applicants">
+        <p class="console-section-title">가입 신청자 목록</p>
+        <div id="applicant-list" class="applicant-list">
+          <div style="color:var(--gray);font-size:0.85rem;padding:0.5rem 0;">불러오는 중...</div>
+        </div>
+      </div>
+
+      <!-- 공지 관리 패널 -->
+      <div class="console-panel" id="panel-notices">
+        <p class="console-section-title">공지사항 관리</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <input type="text" id="console-notice-input" placeholder="공지사항 제목" style="flex:1;padding:0.55rem 0.85rem;border:1px solid var(--border);border-radius:8px;font-size:0.875rem;font-family:inherit;outline:none;">
+          <button class="btn btn-blue btn-sm" id="console-add-notice-btn">등록</button>
+        </div>
+        <div id="console-notice-list" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+      </div>
+
+    </div><!-- /console-body -->
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
 </body>
 </html>
