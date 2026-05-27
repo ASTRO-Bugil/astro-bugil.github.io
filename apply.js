@@ -1,4 +1,4 @@
-```javascript
+javascript
 import {
   db
 } from './firebase-config.js';
@@ -71,4 +71,4 @@ document.getElementById('apply-form')
   }
 
 });
-```
+
