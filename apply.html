@@ -1,0 +1,240 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTRO 가입 신청</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --blue:#3b82f6;
+  --blue-light:#eff6ff;
+  --border:#e2e8f0;
+  --ink:#1e293b;
+  --gray:#64748b;
+  --gray-light:#f8fafc;
+  --white:#fff;
+  --green:#10b981;
+  --red:#dc2626;
+}
+
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--white);
+  color:var(--ink);
+}
+
+nav{
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 6%;
+  border-bottom:1px solid var(--border);
+}
+
+.logo{
+  text-decoration:none;
+  color:var(--ink);
+  font-weight:700;
+}
+
+.container{
+  max-width:860px;
+  margin:0 auto;
+  padding:60px 24px;
+}
+
+.hero-tag{
+  display:inline-block;
+  background:var(--blue-light);
+  color:var(--blue);
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:.8rem;
+  margin-bottom:1rem;
+}
+
+h1{
+  font-size:2.2rem;
+  margin-bottom:.8rem;
+}
+
+.sub{
+  color:var(--gray);
+  margin-bottom:2rem;
+}
+
+.form-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:2rem;
+  background:var(--white);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1rem;
+}
+
+.form-group{
+  margin-bottom:1.2rem;
+}
+
+.form-group label{
+  display:block;
+  margin-bottom:.45rem;
+  font-size:.9rem;
+  font-weight:500;
+}
+
+.form-group input,
+.form-group textarea{
+  width:100%;
+  padding:.8rem 1rem;
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-family:inherit;
+  font-size:.95rem;
+  outline:none;
+}
+
+.form-group textarea{
+  resize:vertical;
+  min-height:120px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus{
+  border-color:var(--blue);
+}
+
+.btn{
+  border:none;
+  background:var(--blue);
+  color:white;
+  padding:.9rem 1.5rem;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:.95rem;
+  cursor:pointer;
+  width:100%;
+  font-weight:600;
+}
+
+.btn:hover{
+  background:#2563eb;
+}
+
+#status{
+  margin-top:1rem;
+  font-size:.9rem;
+}
+
+.success{color:var(--green)}
+.error{color:var(--red)}
+
+@media(max-width:700px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  h1{
+    font-size:1.8rem;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <a href="index.html" class="logo">ASTRO 🚀</a>
+</nav>
+
+<div class="container">
+
+  <span class="hero-tag">ASTRO 지원서</span>
+
+  <h1>가입 신청</h1>
+
+  <p class="sub">
+    ASTRO와 함께 항공우주공학의 꿈을 키워갈 새로운 부원을 모집합니다.
+  </p>
+
+  <div class="form-card">
+
+    <form id="apply-form">
+
+      <div class="grid">
+
+        <div class="form-group">
+          <label>학번</label>
+          <input type="text" id="studentId" required>
+        </div>
+
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="name" required>
+        </div>
+
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="text" id="phone" required>
+        </div>
+
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="email" required>
+        </div>
+
+      </div>
+
+      <div class="form-group">
+        <label>자기소개</label>
+        <textarea id="intro" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>지원동기</label>
+        <textarea id="motivation" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label id="q1-label">질문 1</label>
+        <textarea id="q1" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label id="q2-label">질문 2</label>
+        <textarea id="q2" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>하고 싶은 말</label>
+        <textarea id="extra"></textarea>
+      </div>
+
+      <button class="btn" type="submit">
+        제출하기
+      </button>
+
+      <div id="status"></div>
+
+    </form>
+
+  </div>
+
+</div>
+
+<script type="module" src="apply.js"></script>
+
+</body>
+</html>
+```
