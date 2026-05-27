@@ -155,10 +155,13 @@ async function submitApplication(data) {
 
 /* ===== 관리자 설정 ===== */
 
-const ADMIN_EMAIL = 'yunthomas0120@gmail.com';
+const ADMIN_EMAILS = [
+  'yunthomas0120@gmail.com',
+  'yunarchive0120@gmail.com'
+];
 
 function isAdmin(user) {
-  return !!user && user.email === ADMIN_EMAIL;
+  return !!user && ADMIN_EMAILS.includes(user.email);
 }
 
 /* ===== 관리자 삭제 버튼 토글 ===== */
