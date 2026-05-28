@@ -41,27 +41,26 @@ async function checkAdmin(user) {
   return _adminSet.has(user.email);
 }
 
-// ── 이름/이메일 마스킹 (이름 우선 처리) ──────────────────────────────────────────
+// ── 이름/이메일 마스킹 (맨 뒷글자도 모자이크 적용) ─────────────────────────────────
 function maskName(nameOrEmail) {
   if (!nameOrEmail) return '익명';
   
+  // 1. 이메일 아이디인 경우 (예: abcde@... -> a****)
   if (nameOrEmail.includes('@')) {
     const local = nameOrEmail.split('@')[0];
-    if (local.length <= 2) return local.charAt(0) + '*';
+    if (local.length <= 1) return local + '*';
     const first = local.charAt(0);
-    const last = local.slice(-1);
-    const stars = '*'.repeat(Math.min(local.length - 2, 5));
-    return `${first}${stars}${last}`;
+    const stars = '*'.repeat(Math.min(local.length - 1, 8)); // 너무 길어지지 않게 제한
+    return first + stars;
   }
 
+  // 2. 일반 이름인 경우 (예: 홍길동 -> 홍**, 남궁민수 -> 남***)
   if (nameOrEmail.length === 1) return nameOrEmail;
-  if (nameOrEmail.length === 2) return nameOrEmail.charAt(0) + '*';
   
   const first = nameOrEmail.charAt(0);
-  const last = nameOrEmail.slice(-1);
-  const middle = '*'.repeat(nameOrEmail.length - 2);
+  const stars = '*'.repeat(nameOrEmail.length - 1);
   
-  return first + middle + last;
+  return first + stars;
 }
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
@@ -265,7 +264,6 @@ async function openPost(postId) {
     const footer = document.getElementById('view-footer-actions');
     footer.innerHTML = '';
     
-    // 삭제 권한: 운영자, 관리자, 또는 본인 글일 경우
     const isMyPost = currentUser && currentUser.email === data.authorEmail;
     if (isOwner(currentUser) || isAdminUser || isMyPost) {
       const b = document.createElement('button');
@@ -487,21 +485,17 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', () => dropdown.classList.remove('open'));
 
-  // 모달 트리거
   document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
   
-  // 로그아웃
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await signOut(auth); toast('로그아웃되었습니다.','info'); dropdown.classList.remove('open');
   });
 
-  // 구글 로그인
   document.getElementById('google-login-btn').addEventListener('click', async () => {
     try { await signInWithPopup(auth,gp); closeModal('login-modal'); toast('Google 로그인 성공','success'); }
     catch(ex) { document.getElementById('login-error').textContent = translateAuthError(ex.code); }
   });
 
-  // 폼 제출 이벤트 리스너 추가 (오류 수정 핵심)
   document.getElementById('email-login-form').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = document.getElementById('email-login-submit-btn');
@@ -534,7 +528,6 @@ window.addEventListener('DOMContentLoaded', () => {
     btn.disabled = false;
   });
 
-  // 탭 전환
   document.getElementById('go-signup').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('login-tab').style.display  = 'none';
