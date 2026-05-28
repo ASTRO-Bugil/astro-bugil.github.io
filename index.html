@@ -222,6 +222,7 @@
     <li><a href="#activities">활동보기</a></li>
     <li><a href="#notice">공지사항</a></li>
     <li><a href="apply.html">가입 신청</a></li>
+    <li><a href="community.html">커뮤니티</a></li>
   </ul>
   <div class="nav-right">
     <span id="user-info"></span>
@@ -299,7 +300,6 @@
 
 <div id="toast-container"></div>
 
-<!-- LOGIN MODAL -->
 <div id="login-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close">✕</button>
@@ -331,7 +331,6 @@
   </div>
 </div>
 
-<!-- OWNER CONSOLE MODAL -->
 <div id="console-modal" class="modal-overlay">
   <div class="modal" style="max-width:700px;padding:0;overflow:hidden;">
     <div class="console-header">
@@ -351,7 +350,6 @@
     </div>
     <div class="console-body">
 
-      <!-- 개요 -->
       <div class="console-panel active" id="panel-overview">
         <p class="console-section-title">사이트 현황</p>
         <div class="stats-grid">
@@ -369,7 +367,6 @@
         </div>
       </div>
 
-      <!-- 관리자 -->
       <div class="console-panel" id="panel-admins">
         <p class="console-section-title">현재 관리자 목록</p>
         <div class="admin-list" id="console-admin-list"><div style="color:var(--gray);font-size:0.85rem;">불러오는 중...</div></div>
@@ -382,7 +379,6 @@
         <p id="admin-add-error" class="form-error"></p>
       </div>
 
-      <!-- 배너 -->
       <div class="console-panel" id="panel-banner">
         <p class="console-section-title">현재 배너 상태</p>
         <div id="current-banner-info" style="margin-bottom:1.25rem;padding:0.75rem 1rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;color:var(--gray);">불러오는 중...</div>
@@ -415,7 +411,6 @@
         </div>
       </div>
 
-      <!-- 지원 질문 설정 -->
       <div class="console-panel" id="panel-questions">
         <p class="console-section-title">가입 신청 질문 설정</p>
         <p style="font-size:0.82rem;color:var(--gray);margin-bottom:1rem;">apply.html 가입 신청 폼에 표시되는 질문 1, 질문 2를 설정합니다.</p>
@@ -431,14 +426,12 @@
         <p id="questions-status" style="font-size:0.78rem;color:var(--green);margin-top:0.5rem;min-height:1.2em;"></p>
       </div>
 
-      <!-- 가입 신청 (페이지 이동) -->
       <div class="console-panel" id="panel-applications">
         <p class="console-section-title">가입 신청 관리</p>
         <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1.5rem;">신청자 목록 확인, 합격/불합격 처리, 신청서 삭제 등의 기능은 전용 관리 페이지에서 제공됩니다.</p>
         <a href="apply_info.html" target="_blank" class="btn btn-blue" style="font-size:0.9rem;padding:0.7rem 1.75rem;">📋 신청자 관리 페이지 열기 →</a>
       </div>
 
-      <!-- 공지 관리 -->
       <div class="console-panel" id="panel-notices">
         <p class="console-section-title">공지사항 관리</p>
         <div class="input-row" style="margin-bottom:1rem;">
