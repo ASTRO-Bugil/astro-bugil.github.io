@@ -21,18 +21,6 @@ onAuthStateChanged(auth, async user => {
   loadApps();
 });
 
-// 질문 불러오기
-async function loadQuestions() {
-  try {
-    const snap = await getDoc(doc(db, 'config', 'apply_questions'));
-    if (snap.exists()) {
-      const data = snap.data();
-      document.getElementById('q1-label').textContent = data.q1 || '질문 1';
-      document.getElementById('q2-label').textContent = data.q2 || '질문 2';
-    }
-  } catch(e) { console.error(e); }
-}
-
 loadQuestions();
 
 async function loadApps() {
