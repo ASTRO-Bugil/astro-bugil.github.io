@@ -84,6 +84,12 @@
   .board-table tbody tr { border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.12s; }
   .board-table tbody tr:last-child { border-bottom:none; }
   .board-table tbody tr:hover { background:var(--blue-light); }
+  
+  /* 공지글 스타일 */
+  .board-table tbody tr.row-notice { background-color: var(--red-light); }
+  .board-table tbody tr.row-notice:hover { background-color: #fee2e2; }
+  .badge-notice { font-size:0.7rem; font-weight:700; color:var(--red); padding:2px 0; display:inline-block; }
+  
   .board-table td { padding:0.85rem 1rem; font-size:0.875rem; color:var(--ink); vertical-align:middle; }
   .board-table td.col-num     { text-align:center; color:var(--gray); font-size:0.8rem; }
   .board-table td.col-author  { text-align:center; font-size:0.8rem; color:var(--gray); }
@@ -208,7 +214,7 @@
   <div class="board-wrap" style="padding:0 6%;">
     <p class="section-label">Community</p>
     <h1>커뮤니티 게시판 💬</h1>
-    <p>ASTRO 부원들이 자유롭게 소통하는 공간입니다. 로그인 후 글을 작성할 수 있습니다.</p>
+    <p>ASTRO 부원들이 자유롭게 소통하는 공간입니다. 누구나 글을 읽을 수 있으며 로그인 시 글 작성이 가능합니다.</p>
   </div>
 </div>
 
@@ -251,6 +257,7 @@
 
 <div id="toast-container"></div>
 
+<!-- WRITE MODAL -->
 <div id="write-modal" class="modal-overlay">
   <div class="modal-inner">
     <div class="write-header">
@@ -258,6 +265,11 @@
       <button class="modal-close-x" data-close="write-modal">✕</button>
     </div>
     <div class="write-body">
+      <!-- 관리자용 공지글 설정 체크박스 -->
+      <div id="notice-checkbox-wrap" style="display:none; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
+        <input type="checkbox" id="post-is-notice" style="accent-color:var(--red); width:16px; height:16px; cursor:pointer;">
+        <label for="post-is-notice" style="font-size:0.85rem; font-weight:600; color:var(--red); cursor:pointer;">🚨 공지글로 등록</label>
+      </div>
       <input  type="text" class="write-title-input"   id="post-title-input"   placeholder="제목을 입력하세요" maxlength="100">
       <textarea           class="write-content-input" id="post-content-input" placeholder="내용을 입력하세요"></textarea>
     </div>
@@ -268,6 +280,7 @@
   </div>
 </div>
 
+<!-- VIEW MODAL -->
 <div id="view-modal" class="modal-overlay">
   <div class="modal-inner">
     <div class="view-header">
@@ -293,6 +306,7 @@
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
 <div id="login-modal" class="modal-overlay">
   <div class="modal-inner">
     <div id="login-tab">
