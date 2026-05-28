@@ -21,8 +21,6 @@ onAuthStateChanged(auth, async user => {
   loadApps();
 });
 
-loadQuestions();
-
 async function loadApps() {
   const snap = await getDocs(query(collection(db, 'applications'), orderBy('createdAt', 'desc')));
   apps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -125,8 +123,8 @@ function showModal(app) {
     </div>
     <strong>1. 아스트로에 지원하게 된 동기를 본인의 관심분야(수학, 물리학, 화학 등)와 관련지어 구체적으로 작성하시오.</strong><pre>${app.intro}</pre>
     <strong>2. 고등학교 진학 전 수학, 과학, 융합 분야에서 자기주도적으로 탐구한 활동을 자신의 열정, 탐구력 및 창의적 문제해결력 등이 잘 드러나도록 구체적으로 서술하시오.</strong><pre>${app.motivation}</pre>
-    <strong>질문2:</strong><pre>${app.q1}</pre>
-    <strong>질문1:</strong><pre>${app.q2}</pre>
+    <strong>질문 1:</strong><pre>${app.q1}</pre>
+    <strong>질문 2:</strong><pre>${app.q2}</pre>
     <strong>5. 본인의 포부나 추가로 하고 싶은 말을 자유롭게 적어주세요.</strong><pre>${app.extra || '-'}</pre>
   `;
 }
