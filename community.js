@@ -26,11 +26,25 @@ const gp   = new GoogleAuthProvider();
 const OWNER_EMAILS = ['yunthomas0120@gmail.com', 'yunarchive0120@gmail.com'];
 function isOwner(u) { return !!u && OWNER_EMAILS.includes(u.email); }
 
+// ── 관리자 권한 확인 ──────────────────────────────────────────────────────────
+let _adminSet = null;
+async function fetchAdmins() {
+  try {
+    const snap = await getDocs(collection(db, 'admins'));
+    _adminSet = new Set(snap.docs.map(d => d.id));
+  } catch { _adminSet = new Set(); }
+}
+async function checkAdmin(user) {
+  if (!user) return false;
+  if (isOwner(user)) return true;
+  if (!_adminSet) await fetchAdmins();
+  return _adminSet.has(user.email);
+}
+
 // ── 이름/이메일 마스킹 (이름 우선 처리) ──────────────────────────────────────────
 function maskName(nameOrEmail) {
   if (!nameOrEmail) return '익명';
   
-  // displayName이 설정되지 않아 이메일이 넘어온 경우
   if (nameOrEmail.includes('@')) {
     const local = nameOrEmail.split('@')[0];
     if (local.length <= 2) return local.charAt(0) + '*';
@@ -40,7 +54,6 @@ function maskName(nameOrEmail) {
     return `${first}${stars}${last}`;
   }
 
-  // 일반 이름인 경우 (예: 홍길동 -> 홍*동)
   if (nameOrEmail.length === 1) return nameOrEmail;
   if (nameOrEmail.length === 2) return nameOrEmail.charAt(0) + '*';
   
@@ -93,6 +106,7 @@ function translateAuthError(code) {
 
 // ── 상태 ──────────────────────────────────────────────────────────────────────
 let currentUser = null;
+let isAdminUser = false;
 let allPosts = [];
 let filteredPosts = [];
 let currentPage = 1;
@@ -119,7 +133,17 @@ async function loadPosts() {
 
 function applyFilter() {
   const q = document.getElementById('search-input').value.trim().toLowerCase();
-  filteredPosts = q ? allPosts.filter(p => p.title.toLowerCase().includes(q)) : [...allPosts];
+  let posts = q ? allPosts.filter(p => p.title.toLowerCase().includes(q)) : [...allPosts];
+  
+  // 공지글을 무조건 상단으로 정렬
+  posts.sort((a, b) => {
+    const aNotice = a.isNotice ? 1 : 0;
+    const bNotice = b.isNotice ? 1 : 0;
+    if (aNotice !== bNotice) return bNotice - aNotice;
+    return 0; // 이미 firestore에서 날짜순으로 불러왔으므로 유지
+  });
+  
+  filteredPosts = posts;
   currentPage = 1;
   renderBoard();
 }
@@ -132,17 +156,30 @@ function renderBoard() {
     document.getElementById('pagination').innerHTML = '';
     return;
   }
+  
+  const noticeCount = filteredPosts.filter(p => p.isNotice).length;
   const start = (currentPage - 1) * PAGE_SIZE;
   const page  = filteredPosts.slice(start, start + PAGE_SIZE);
   tbody.innerHTML = '';
+  
   page.forEach((post, i) => {
-    const num  = filteredPosts.length - start - i;
+    const absoluteIndex = start + i;
     const isNew = post.createdAt && (Date.now() - post.createdAt.toMillis() < 24*60*60*1000);
-    // authorName이 있으면 사용하고, 없으면 authorEmail 사용
     const displayName = post.authorName || post.authorEmail;
+    
+    // 번호 표시 로직: 공지면 '공지', 일반 글이면 역순 번호
+    let numStr = '';
+    if (post.isNotice) {
+      numStr = '<span class="badge-notice">공지</span>';
+    } else {
+      const normalIndex = absoluteIndex - noticeCount;
+      numStr = (filteredPosts.length - noticeCount) - normalIndex;
+    }
+
     const tr = document.createElement('tr');
+    if (post.isNotice) tr.className = 'row-notice';
     tr.innerHTML = `
-      <td class="col-num">${num}</td>
+      <td class="col-num">${numStr}</td>
       <td class="col-title">
         <div class="post-title-cell">
           <span class="post-title-text">${esc(post.title)}</span>
@@ -176,35 +213,29 @@ function renderPagination() {
 }
 window.gotoPage = p => { currentPage = p; renderBoard(); window.scrollTo({top:0,behavior:'smooth'}); };
 
-// ── 게시글 전체 삭제 (관리자 전용) ───────────────────────────────────────────
+// ── 게시글 전체 삭제 (운영담당자 전용) ───────────────────────────────────────────
 async function deleteAllPosts() {
   if (!isOwner(currentUser)) {
     toast('운영담당자만 접근할 수 있습니다.', 'error');
     return;
   }
-  
   if (!confirm('🚨 경고: 정말로 모든 게시글과 댓글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
     return;
   }
-
   const btn = document.getElementById('delete-all-btn');
   btn.disabled = true;
   btn.textContent = '삭제 진행 중...';
 
   try {
     const snap = await getDocs(collection(db, 'community_posts'));
-    
-    // 모든 게시글을 순회하며 하위 댓글까지 모두 삭제
     for (const docSnap of snap.docs) {
       const postId = docSnap.id;
       const commentsSnap = await getDocs(collection(db, 'community_posts', postId, 'comments'));
-      
       for (const commentSnap of commentsSnap.docs) {
         await deleteDoc(commentSnap.ref);
       }
       await deleteDoc(docSnap.ref);
     }
-    
     toast('모든 게시글이 삭제되었습니다.', 'success');
     loadPosts();
   } catch (error) {
@@ -218,23 +249,29 @@ async function deleteAllPosts() {
 // ── 글 열기 ───────────────────────────────────────────────────────────────────
 async function openPost(postId) {
   currentPostId = postId;
-  try { await updateDoc(doc(db,'community_posts',postId), { views: increment(1) }); } catch {}
+  // 조회수는 로그인한 상태일 때만 증가하도록 (권한 에러 방지)
+  if (currentUser) {
+    try { await updateDoc(doc(db,'community_posts',postId), { views: increment(1) }); } catch {}
+  }
+  
   try {
     const snap = await getDoc(doc(db,'community_posts',postId));
     if (!snap.exists()) { toast('삭제된 글입니다.','error'); return; }
     const data = snap.data();
     const displayName = data.authorName || data.authorEmail;
     
-    document.getElementById('view-title').textContent   = data.title;
+    // 제목 앞에 공지 뱃지 달아주기
+    const titlePrefix = data.isNotice ? '<span class="badge-notice" style="margin-right:8px;font-size:0.8rem;">[공지]</span>' : '';
+    document.getElementById('view-title').innerHTML = titlePrefix + esc(data.title);
+    
     document.getElementById('view-author').textContent  = maskName(displayName);
     document.getElementById('view-date').textContent    = fmtDateFull(data.createdAt);
-    document.getElementById('view-views').textContent   = ((data.views||0)+1) + ' 조회';
+    document.getElementById('view-views').textContent   = ((data.views||0) + (currentUser?1:0)) + ' 조회';
     document.getElementById('view-content').textContent = data.content;
     
-    // 운영담당자 삭제 버튼
     const footer = document.getElementById('view-footer-actions');
     footer.innerHTML = '';
-    if (isOwner(currentUser)) {
+    if (isOwner(currentUser) || isAdminUser) {
       const b = document.createElement('button');
       b.className = 'btn btn-danger btn-sm';
       b.textContent = '🗑️ 글 삭제';
@@ -247,7 +284,7 @@ async function openPost(postId) {
 }
 
 async function deletePost(postId) {
-  if (!isOwner(currentUser)) { toast('운영담당자만 삭제할 수 있습니다.','error'); return; }
+  if (!isOwner(currentUser) && !isAdminUser) { toast('삭제 권한이 없습니다.','error'); return; }
   if (!confirm('이 글을 삭제할까요? 댓글도 함께 삭제됩니다.')) return;
   try {
     const cs = await getDocs(collection(db,'community_posts',postId,'comments'));
@@ -287,7 +324,7 @@ async function loadComments(postId) {
             <div class="comment-text">${esc(data.content)}</div>
             <div class="comment-date">${fmtDateFull(data.createdAt)}</div>
           </div>
-          ${isOwner(currentUser) ? `<button class="comment-del-btn" data-cid="${d.id}" title="삭제">✕</button>` : ''}`;
+          ${isOwner(currentUser) || isAdminUser ? `<button class="comment-del-btn" data-cid="${d.id}" title="삭제">✕</button>` : ''}`;
         item.querySelectorAll('[data-cid]').forEach(b =>
           b.addEventListener('click', () => deleteComment(postId, b.dataset.cid))
         );
@@ -296,7 +333,6 @@ async function loadComments(postId) {
     }
   } catch(e) { list.innerHTML = `<div class="comment-empty" style="color:var(--red);">오류: ${e.message}</div>`; }
 
-  // 댓글 작성 영역
   writeArea.innerHTML = '';
   if (currentUser) {
     const row = document.createElement('div');
@@ -334,7 +370,7 @@ async function loadComments(postId) {
 }
 
 async function deleteComment(postId, cid) {
-  if (!isOwner(currentUser)) { toast('운영담당자만 삭제할 수 있습니다.','error'); return; }
+  if (!isOwner(currentUser) && !isAdminUser) { toast('삭제 권한이 없습니다.','error'); return; }
   if (!confirm('댓글을 삭제할까요?')) return;
   try {
     await deleteDoc(doc(db,'community_posts',postId,'comments',cid));
@@ -348,6 +384,8 @@ async function submitPost() {
   if (!currentUser) { toast('로그인이 필요합니다.','error'); return; }
   const title   = document.getElementById('post-title-input').value.trim();
   const content = document.getElementById('post-content-input').value.trim();
+  const isNotice = document.getElementById('post-is-notice').checked;
+  
   if (!title)   { toast('제목을 입력해주세요.','error'); return; }
   if (!content) { toast('내용을 입력해주세요.','error'); return; }
   const btn = document.getElementById('post-submit-btn');
@@ -356,11 +394,13 @@ async function submitPost() {
     await addDoc(collection(db,'community_posts'), {
       title, content, authorEmail: currentUser.email,
       authorName: currentUser.displayName || '',
+      isNotice: isNotice && isAdminUser, // 관리자일 때만 공지 설정 적용
       createdAt: serverTimestamp(), views: 0
     });
     closeModal('write-modal');
     document.getElementById('post-title-input').value = '';
     document.getElementById('post-content-input').value = '';
+    document.getElementById('post-is-notice').checked = false;
     toast('글이 등록되었습니다.','success');
     loadPosts();
   } catch(e) { toast('등록 실패: '+e.message,'error'); }
@@ -368,7 +408,7 @@ async function submitPost() {
 }
 
 // ── Auth 상태 ─────────────────────────────────────────────────────────────────
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   currentUser = user;
   const loginBtn  = document.getElementById('login-btn');
   const menuWrap  = document.getElementById('user-menu-wrap');
@@ -376,28 +416,32 @@ onAuthStateChanged(auth, user => {
   const writeBtn  = document.getElementById('write-btn');
   const writeBtnL = document.getElementById('write-btn-login');
   const deleteAllBtn = document.getElementById('delete-all-btn');
+  const noticeCheckboxWrap = document.getElementById('notice-checkbox-wrap');
 
   if (user) {
+    isAdminUser = await checkAdmin(user);
+    
     loginBtn.style.display  = 'none';
     menuWrap.style.display  = 'flex';
-    userInfo.textContent    = isOwner(user) ? `👑 ${user.displayName||user.email}` : (user.displayName||user.email);
+    userInfo.textContent    = isOwner(user) ? `👑 ${user.displayName||user.email}` : (isAdminUser ? `💻 ${user.displayName||user.email}` : (user.displayName||user.email));
     userInfo.style.display  = 'inline';
     writeBtn.style.display  = 'inline-block';
     writeBtnL.style.display = 'none';
     
-    // 운영담당자일 경우 전체 삭제 버튼 표시
-    if (isOwner(user)) {
-      deleteAllBtn.style.display = 'inline-block';
-    } else {
-      deleteAllBtn.style.display = 'none';
-    }
+    // 운영담당자 전체 삭제 버튼
+    deleteAllBtn.style.display = isOwner(user) ? 'inline-block' : 'none';
+    
+    // 관리자 공지글 등록 옵션
+    noticeCheckboxWrap.style.display = isAdminUser ? 'flex' : 'none';
   } else {
+    isAdminUser = false;
     loginBtn.style.display  = 'inline-block';
     menuWrap.style.display  = 'none';
     userInfo.style.display  = 'none';
     writeBtn.style.display  = 'none';
     writeBtnL.style.display = 'inline-block';
     deleteAllBtn.style.display = 'none';
+    noticeCheckboxWrap.style.display = 'none';
   }
   
   if (currentPostId && document.getElementById('view-modal').style.display === 'flex') {
