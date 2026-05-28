@@ -26,16 +26,29 @@ const gp   = new GoogleAuthProvider();
 const OWNER_EMAILS = ['yunthomas0120@gmail.com', 'yunarchive0120@gmail.com'];
 function isOwner(u) { return !!u && OWNER_EMAILS.includes(u.email); }
 
-// ── 이름 마스킹 ───────────────────────────────────────────────────────────────
-function maskName(email) {
-  if (!email) return '익명';
-  const local = email.split('@')[0];
-  if (local.length === 1) return local;
-  if (local.length === 2) return local[0] + '*';
-  const first = local[0];
-  const last  = local[local.length - 1];
-  const stars = '*'.repeat(Math.min(local.length - 2, 5));
-  return `${first}${stars}${last}`;
+// ── 이름/이메일 마스킹 (이름 우선 처리) ──────────────────────────────────────────
+function maskName(nameOrEmail) {
+  if (!nameOrEmail) return '익명';
+  
+  // displayName이 설정되지 않아 이메일이 넘어온 경우
+  if (nameOrEmail.includes('@')) {
+    const local = nameOrEmail.split('@')[0];
+    if (local.length <= 2) return local.charAt(0) + '*';
+    const first = local.charAt(0);
+    const last = local.slice(-1);
+    const stars = '*'.repeat(Math.min(local.length - 2, 5));
+    return `${first}${stars}${last}`;
+  }
+
+  // 일반 이름인 경우 (예: 홍길동 -> 홍*동)
+  if (nameOrEmail.length === 1) return nameOrEmail;
+  if (nameOrEmail.length === 2) return nameOrEmail.charAt(0) + '*';
+  
+  const first = nameOrEmail.charAt(0);
+  const last = nameOrEmail.slice(-1);
+  const middle = '*'.repeat(nameOrEmail.length - 2);
+  
+  return first + middle + last;
 }
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
@@ -92,7 +105,6 @@ async function loadPosts() {
   tbody.innerHTML = '<tr><td colspan="6" class="board-empty">불러오는 중...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'community_posts'), orderBy('createdAt','desc')));
-    // 댓글 수 병렬 조회
     const ccArr = await Promise.all(snap.docs.map(async d => {
       try { const cs = await getDocs(collection(db,'community_posts',d.id,'comments')); return [d.id, cs.size]; }
       catch { return [d.id, 0]; }
@@ -126,6 +138,8 @@ function renderBoard() {
   page.forEach((post, i) => {
     const num  = filteredPosts.length - start - i;
     const isNew = post.createdAt && (Date.now() - post.createdAt.toMillis() < 24*60*60*1000);
+    // authorName이 있으면 사용하고, 없으면 authorEmail 사용
+    const displayName = post.authorName || post.authorEmail;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="col-num">${num}</td>
@@ -135,7 +149,7 @@ function renderBoard() {
           ${isNew ? '<span class="badge-new">N</span>' : ''}
         </div>
       </td>
-      <td class="col-author">${esc(maskName(post.authorEmail))}</td>
+      <td class="col-author">${esc(maskName(displayName))}</td>
       <td class="col-date">${fmtDate(post.createdAt)}</td>
       <td class="col-views">${post.views || 0}</td>
       <td class="col-comments">${post.commentCount > 0 ? post.commentCount : ''}</td>`;
@@ -162,6 +176,45 @@ function renderPagination() {
 }
 window.gotoPage = p => { currentPage = p; renderBoard(); window.scrollTo({top:0,behavior:'smooth'}); };
 
+// ── 게시글 전체 삭제 (관리자 전용) ───────────────────────────────────────────
+async function deleteAllPosts() {
+  if (!isOwner(currentUser)) {
+    toast('운영담당자만 접근할 수 있습니다.', 'error');
+    return;
+  }
+  
+  if (!confirm('🚨 경고: 정말로 모든 게시글과 댓글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+    return;
+  }
+
+  const btn = document.getElementById('delete-all-btn');
+  btn.disabled = true;
+  btn.textContent = '삭제 진행 중...';
+
+  try {
+    const snap = await getDocs(collection(db, 'community_posts'));
+    
+    // 모든 게시글을 순회하며 하위 댓글까지 모두 삭제
+    for (const docSnap of snap.docs) {
+      const postId = docSnap.id;
+      const commentsSnap = await getDocs(collection(db, 'community_posts', postId, 'comments'));
+      
+      for (const commentSnap of commentsSnap.docs) {
+        await deleteDoc(commentSnap.ref);
+      }
+      await deleteDoc(docSnap.ref);
+    }
+    
+    toast('모든 게시글이 삭제되었습니다.', 'success');
+    loadPosts();
+  } catch (error) {
+    toast('전체 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚨 전체 삭제';
+  }
+}
+
 // ── 글 열기 ───────────────────────────────────────────────────────────────────
 async function openPost(postId) {
   currentPostId = postId;
@@ -170,8 +223,10 @@ async function openPost(postId) {
     const snap = await getDoc(doc(db,'community_posts',postId));
     if (!snap.exists()) { toast('삭제된 글입니다.','error'); return; }
     const data = snap.data();
+    const displayName = data.authorName || data.authorEmail;
+    
     document.getElementById('view-title').textContent   = data.title;
-    document.getElementById('view-author').textContent  = maskName(data.authorEmail);
+    document.getElementById('view-author').textContent  = maskName(displayName);
     document.getElementById('view-date').textContent    = fmtDateFull(data.createdAt);
     document.getElementById('view-views').textContent   = ((data.views||0)+1) + ' 조회';
     document.getElementById('view-content').textContent = data.content;
@@ -221,11 +276,14 @@ async function loadComments(postId) {
         const data = d.data();
         const item = document.createElement('div');
         item.className = 'comment-item';
-        const initial = (data.authorEmail?.[0]||'?').toUpperCase();
+        
+        const displayName = data.authorName || data.authorEmail;
+        const initial = (displayName?.[0]||'?').toUpperCase();
+        
         item.innerHTML = `
           <div class="comment-avatar">${initial}</div>
           <div class="comment-main">
-            <div class="comment-author">${esc(maskName(data.authorEmail))}</div>
+            <div class="comment-author">${esc(maskName(displayName))}</div>
             <div class="comment-text">${esc(data.content)}</div>
             <div class="comment-date">${fmtDateFull(data.createdAt)}</div>
           </div>
@@ -256,7 +314,8 @@ async function loadComments(postId) {
       try {
         await addDoc(collection(db,'community_posts',postId,'comments'), {
           content: val, authorEmail: currentUser.email,
-          authorName: currentUser.displayName||'', createdAt: serverTimestamp()
+          authorName: currentUser.displayName || '', 
+          createdAt: serverTimestamp()
         });
         inp.value = '';
         loadComments(postId);
@@ -296,7 +355,7 @@ async function submitPost() {
   try {
     await addDoc(collection(db,'community_posts'), {
       title, content, authorEmail: currentUser.email,
-      authorName: currentUser.displayName||'',
+      authorName: currentUser.displayName || '',
       createdAt: serverTimestamp(), views: 0
     });
     closeModal('write-modal');
@@ -316,6 +375,8 @@ onAuthStateChanged(auth, user => {
   const userInfo  = document.getElementById('user-info');
   const writeBtn  = document.getElementById('write-btn');
   const writeBtnL = document.getElementById('write-btn-login');
+  const deleteAllBtn = document.getElementById('delete-all-btn');
+
   if (user) {
     loginBtn.style.display  = 'none';
     menuWrap.style.display  = 'flex';
@@ -323,14 +384,22 @@ onAuthStateChanged(auth, user => {
     userInfo.style.display  = 'inline';
     writeBtn.style.display  = 'inline-block';
     writeBtnL.style.display = 'none';
+    
+    // 운영담당자일 경우 전체 삭제 버튼 표시
+    if (isOwner(user)) {
+      deleteAllBtn.style.display = 'inline-block';
+    } else {
+      deleteAllBtn.style.display = 'none';
+    }
   } else {
     loginBtn.style.display  = 'inline-block';
     menuWrap.style.display  = 'none';
     userInfo.style.display  = 'none';
     writeBtn.style.display  = 'none';
     writeBtnL.style.display = 'inline-block';
+    deleteAllBtn.style.display = 'none';
   }
-  // 열린 글보기가 있으면 댓글 영역 갱신
+  
   if (currentPostId && document.getElementById('view-modal').style.display === 'flex') {
     loadComments(currentPostId);
   }
@@ -346,12 +415,13 @@ window.addEventListener('DOMContentLoaded', () => {
     clearTimeout(st); st = setTimeout(applyFilter, 300);
   });
 
-  // 글쓰기
+  // 버튼 이벤트
   document.getElementById('write-btn').addEventListener('click', () => openModal('write-modal'));
   document.getElementById('write-btn-login').addEventListener('click', () => openModal('login-modal'));
   document.getElementById('post-submit-btn').addEventListener('click', submitPost);
+  document.getElementById('delete-all-btn').addEventListener('click', deleteAllPosts);
 
-  // 모달 닫기 (data-close)
+  // 모달 닫기
   document.querySelectorAll('[data-close]').forEach(b => {
     b.addEventListener('click', () => {
       const id = b.dataset.close;
@@ -360,7 +430,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
   
-  // 오버레이 클릭
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
       if (e.target !== o) return;
@@ -377,19 +446,17 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', () => dropdown.classList.remove('open'));
 
-  // 로그인
+  // 인증
   document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await signOut(auth); toast('로그아웃되었습니다.','info'); dropdown.classList.remove('open');
   });
 
-  // 구글 로그인
   document.getElementById('google-login-btn').addEventListener('click', async () => {
     try { await signInWithPopup(auth,gp); closeModal('login-modal'); toast('Google 로그인 성공','success'); }
     catch(ex) { document.getElementById('login-error').textContent = translateAuthError(ex.code); }
   });
 
-  // 이메일 로그인
   document.getElementById('email-login-btn').addEventListener('click', async () => {
     const err = document.getElementById('login-error');
     try {
@@ -399,7 +466,6 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('email-login-btn').click(); });
 
-  // 회원가입 탭
   document.getElementById('go-signup').addEventListener('click', e => {
     e.preventDefault();
     document.getElementById('login-tab').style.display  = 'none';
@@ -412,7 +478,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-tab').style.display  = 'block';
   });
 
-  // 회원가입
   document.getElementById('email-signup-btn').addEventListener('click', async () => {
     try {
       await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, document.getElementById('signup-pw').value);
