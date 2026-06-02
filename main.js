@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, deleteDoc,
-  doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp
+  doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
@@ -289,6 +289,51 @@ async function loadConsoleStats() {
   } catch {}
 }
 
+// ── 데이터 초기화 (위험) ──────────────────────────────────────────────────────
+async function deleteCollection(collectionName, hasSubcollections = false, subName = 'comments') {
+  const snap = await getDocs(collection(db, collectionName));
+  const batch = writeBatch(db);
+  let count = 0;
+  for (const d of snap.docs) {
+    if (hasSubcollections) {
+      const sub = await getDocs(collection(db, collectionName, d.id, subName));
+      sub.forEach(s => batch.delete(s.ref));
+    }
+    batch.delete(d.ref);
+    count++;
+  }
+  if (count > 0) await batch.commit();
+  return count;
+}
+
+async function resetCollection(name, label, hasSubcoll=false, subName='comments') {
+  if (!isOwner(auth.currentUser)) { toast('운영담당자만 초기화할 수 있습니다.','error'); return; }
+  if (!confirm(`정말 ${label}을(를) 전부 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+  try {
+    const n = await deleteCollection(name, hasSubcoll, subName);
+    toast(`${label} ${n}건이 삭제되었습니다.`, 'success');
+    loadConsoleStats();
+    if (name==='notices') { loadNotices(); loadConsoleNotices(); }
+  } catch(e) { toast('초기화 실패: '+e.message,'error'); }
+}
+
+async function resetAll() {
+  if (!isOwner(auth.currentUser)) { toast('운영담당자만 초기화할 수 있습니다.','error'); return; }
+  const confirmed = prompt('전체 초기화를 실행하려면 "전체초기화"를 입력하세요:');
+  if (confirmed !== '전체초기화') { toast('취소되었습니다.','info'); return; }
+  try {
+    await Promise.all([
+      deleteCollection('notices'),
+      deleteCollection('applications'),
+      deleteCollection('community_posts', true, 'comments'),
+      deleteCollection('activity_posts', true, 'comments'),
+      deleteCollection('suggestions'),
+    ]);
+    toast('모든 데이터가 초기화되었습니다.','success');
+    loadNotices(); loadConsoleNotices(); loadConsoleStats();
+  } catch(e) { toast('초기화 실패: '+e.message,'error'); }
+}
+
 // ── 콘솔 탭 전환 ──────────────────────────────────────────────────────────────
 function switchTab(id) {
   document.querySelectorAll('.console-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===id));
@@ -452,4 +497,17 @@ window.addEventListener('DOMContentLoaded', () => {
   cni.addEventListener('keydown', async e => {
     if (e.key==='Enter') { e.preventDefault(); await addNotice(cni.value); cni.value=''; loadConsoleNotices(); loadConsoleStats(); }
   });
+
+  // ── 초기화 버튼들 ─────────────────────────────────────────────────────────
+  document.getElementById('reset-notices-btn').addEventListener('click', () =>
+    resetCollection('notices', '공지사항'));
+  document.getElementById('reset-applications-btn').addEventListener('click', () =>
+    resetCollection('applications', '가입 신청 데이터'));
+  document.getElementById('reset-community-btn').addEventListener('click', () =>
+    resetCollection('community_posts', '커뮤니티 게시글', true));
+  document.getElementById('reset-activities-btn').addEventListener('click', () =>
+    resetCollection('activity_posts', '활동내역 게시글', true));
+  document.getElementById('reset-suggestions-btn').addEventListener('click', () =>
+    resetCollection('suggestions', '건의함 데이터'));
+  document.getElementById('reset-all-btn').addEventListener('click', resetAll);
 });
