@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>활동내역 — ASTRO Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --blue:#3b82f6; --blue-light:#eff6ff; --blue-mid:#dbeafe;
+  --ink:#1e293b; --gray:#64748b; --gray-light:#f1f5f9;
+  --border:#e2e8f0; --white:#ffffff; --red:#dc2626;
+  --red-light:#fef2f2; --green:#10b981; --green-light:#ecfdf5;
+  --purple:#8b5cf6; --purple-light:#f5f3ff;
+}
+body { font-family:'Noto Sans KR',sans-serif; background:var(--white); color:var(--ink); font-size:15px; line-height:1.7; }
+
+/* NAV */
+nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--white); z-index:10; }
+.logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+.nav-logo-icon { width:40px; height:40px; object-fit:contain; }
+.nav-links { display:flex; gap:1.5rem; list-style:none; }
+.nav-links a { font-size:0.875rem; color:var(--gray); text-decoration:none; transition:color 0.2s; }
+.nav-links a:hover, .nav-links a.active { color:var(--ink); font-weight:500; }
+.nav-right { display:flex; align-items:center; gap:0.75rem; }
+#user-info { font-size:0.8rem; color:var(--gray); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+
+/* BUTTONS */
+.btn { display:inline-flex; align-items:center; gap:0.3rem; padding:0.55rem 1.2rem; border-radius:8px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.2s; border:none; font-family:inherit; }
+.btn-blue { background:var(--blue); color:var(--white); }
+.btn-blue:hover { background:#2563eb; }
+.btn-blue:disabled { opacity:0.6; cursor:not-allowed; }
+.btn-outline { background:transparent; color:var(--gray); border:1px solid var(--border); }
+.btn-outline:hover { background:var(--gray-light); color:var(--ink); }
+.btn-sm { padding:0.4rem 0.9rem; font-size:0.8rem; }
+.btn-xs { padding:0.28rem 0.65rem; font-size:0.73rem; }
+.btn-danger { background:var(--red-light); color:var(--red); border:1px solid #fecaca; }
+.btn-danger:hover { background:#fecaca; }
+
+/* DROPDOWN */
+.nav-menu-wrap { position:relative; }
+.nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; }
+.nav-dropdown.open { display:block; }
+.nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); text-decoration:none; transition:background 0.15s; }
+.nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
+.nav-dropdown button.danger { color:var(--red); }
+.dropdown-divider { height:1px; background:var(--border); }
+
+/* TOAST */
+#toast-container { position:fixed; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:0.5rem; z-index:9999; }
+.toast { padding:0.75rem 1.25rem; border-radius:10px; font-size:0.85rem; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:300px; }
+.toast-success { background:var(--green); color:white; }
+.toast-error   { background:var(--red);   color:white; }
+.toast-info    { background:var(--blue);  color:white; }
+@keyframes modal-in { from{opacity:0;transform:translateY(10px) scale(0.97)} to{opacity:1;transform:none} }
+
+/* PAGE HEADER */
+.page-header { padding:48px 6% 32px; background:var(--white); border-bottom:1px solid var(--border); }
+.section-label { font-size:0.73rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); margin-bottom:0.5rem; }
+.page-header h1 { font-size:1.7rem; font-weight:700; letter-spacing:-0.02em; margin-bottom:0.3rem; }
+.page-header p { font-size:0.875rem; color:var(--gray); font-weight:300; }
+
+/* GRID */
+.activity-container { max-width:1200px; margin:0 auto; padding:2rem 6%; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+.toolbar-left { font-size:0.82rem; color:var(--gray); }
+.activity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.25rem; }
+
+/* ACTIVITY CARD */
+.act-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--white); cursor:pointer; transition:box-shadow 0.2s,transform 0.2s,border-color 0.2s; }
+.act-card:hover { box-shadow:0 4px 20px rgba(59,130,246,0.12); transform:translateY(-2px); border-color:var(--blue); }
+.act-card-media { width:100%; height:200px; object-fit:cover; background:var(--gray-light); display:block; }
+.act-card-media-placeholder { width:100%; height:200px; background:linear-gradient(135deg,var(--blue-light),var(--blue-mid)); display:flex; align-items:center; justify-content:center; font-size:2.5rem; }
+.act-card-body { padding:1.1rem 1.25rem 1.25rem; }
+.act-card-badge { font-size:0.7rem; font-weight:600; color:var(--blue); background:var(--blue-light); padding:2px 8px; border-radius:20px; display:inline-block; margin-bottom:0.5rem; }
+.act-card-title { font-size:1rem; font-weight:700; color:var(--ink); margin-bottom:0.4rem; line-height:1.4; }
+.act-card-excerpt { font-size:0.825rem; color:var(--gray); line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:0.75rem; }
+.act-card-meta { font-size:0.75rem; color:var(--gray); display:flex; align-items:center; gap:0.75rem; }
+.act-empty { text-align:center; padding:4rem; color:var(--gray); font-size:0.9rem; grid-column:1/-1; }
+
+/* MODAL BASE */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; padding:1rem; }
+.modal-overlay.open { display:flex; }
+
+/* WRITE MODAL */
+#write-modal .modal-inner { background:var(--white); border-radius:16px; width:100%; max-width:680px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; animation:modal-in 0.2s ease; }
+.modal-header { padding:1.5rem 2rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-header h3 { font-size:1.1rem; font-weight:700; }
+.modal-close-x { background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--gray); }
+.modal-close-x:hover { color:var(--ink); }
+.modal-body { padding:1.5rem 2rem; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.9rem; }
+.modal-footer { padding:1rem 2rem; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.5rem; flex-shrink:0; }
+.field-label { font-size:0.8rem; font-weight:600; color:var(--gray); margin-bottom:0.35rem; display:block; }
+input.field, textarea.field, select.field {
+  width:100%; padding:0.6rem 0.85rem; border:1px solid var(--border); border-radius:8px;
+  font-size:0.875rem; font-family:inherit; color:var(--ink); outline:none;
+  transition:border-color 0.2s; background:var(--white); resize:vertical;
+}
+input.field:focus, textarea.field:focus { border-color:var(--blue); }
+textarea.field { min-height:200px; line-height:1.75; }
+
+/* MEDIA UPLOAD */
+.upload-zone { border:2px dashed var(--border); border-radius:10px; padding:1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; }
+.upload-zone:hover { border-color:var(--blue); background:var(--blue-light); }
+.upload-zone input { display:none; }
+.upload-zone p { font-size:0.82rem; color:var(--gray); margin-top:0.4rem; }
+.media-preview-list { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.75rem; }
+.media-thumb { width:80px; height:80px; border-radius:8px; object-fit:cover; border:1px solid var(--border); }
+.media-thumb-wrap { position:relative; }
+.media-thumb-del { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:white; border:none; cursor:pointer; font-size:0.65rem; display:flex; align-items:center; justify-content:center; }
+video.media-thumb { background:#000; }
+
+/* VIEW MODAL */
+#view-modal .modal-inner { background:var(--white); border-radius:16px; width:100%; max-width:760px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; animation:modal-in 0.2s ease; }
+.view-header { padding:1.5rem 2rem 1rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+.view-header h2 { font-size:1.2rem; font-weight:700; margin-bottom:0.5rem; line-height:1.4; }
+.view-meta { font-size:0.78rem; color:var(--gray); display:flex; gap:1rem; flex-wrap:wrap; }
+.view-body { padding:1.5rem 2rem; flex:1; overflow-y:auto; }
+.view-content { font-size:0.9rem; color:var(--ink); line-height:1.85; white-space:pre-wrap; word-break:break-word; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border); }
+.view-footer { padding:1rem 2rem; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.5rem; flex-shrink:0; }
+
+/* MEDIA GALLERY */
+.media-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:0.6rem; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border); }
+.gallery-img { width:100%; height:140px; object-fit:cover; border-radius:8px; cursor:pointer; transition:opacity 0.15s; }
+.gallery-img:hover { opacity:0.85; }
+.gallery-video { width:100%; border-radius:8px; max-height:240px; }
+
+/* LIGHTBOX */
+#lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:500; align-items:center; justify-content:center; }
+#lightbox.open { display:flex; }
+#lightbox img { max-width:90vw; max-height:90vh; border-radius:8px; }
+#lightbox-close { position:absolute; top:1.5rem; right:1.5rem; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
+
+/* COMMENTS */
+.comments-section { padding-top:0.5rem; }
+.comments-title { font-size:0.9rem; font-weight:600; margin-bottom:1rem; }
+.comment-list { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.25rem; }
+.comment-item { display:flex; gap:0.75rem; padding:0.85rem 1rem; background:var(--gray-light); border-radius:10px; position:relative; }
+.comment-avatar { width:30px; height:30px; border-radius:50%; background:var(--blue-mid); color:var(--blue); display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:700; flex-shrink:0; }
+.comment-main { flex:1; min-width:0; }
+.comment-author { font-size:0.78rem; font-weight:600; margin-bottom:0.15rem; }
+.comment-text { font-size:0.85rem; color:var(--ink); line-height:1.65; word-break:break-word; }
+.comment-date { font-size:0.72rem; color:var(--gray); margin-top:0.2rem; }
+.comment-del-btn { position:absolute; top:0.6rem; right:0.75rem; background:none; border:none; cursor:pointer; color:var(--gray); font-size:0.78rem; padding:2px 5px; border-radius:4px; transition:background 0.15s,color 0.15s; }
+.comment-del-btn:hover { background:#fee2e2; color:var(--red); }
+.comment-write { display:flex; gap:0.5rem; }
+.comment-input { flex:1; padding:0.55rem 0.85rem; border:1px solid var(--border); border-radius:8px; font-size:0.85rem; font-family:inherit; outline:none; }
+.comment-input:focus { border-color:var(--blue); }
+.comment-empty { font-size:0.82rem; color:var(--gray); padding:0.25rem 0 1rem; }
+.comment-login-notice { font-size:0.82rem; color:var(--gray); padding:0.6rem 1rem; background:var(--gray-light); border-radius:8px; }
+
+/* LOGIN MODAL */
+#login-modal .modal-inner { background:var(--white); border-radius:16px; padding:2rem; width:100%; max-width:420px; animation:modal-in 0.2s ease; max-height:90vh; overflow-y:auto; }
+.form-group { margin-bottom:1rem; }
+.form-group label { display:block; font-size:0.8rem; font-weight:500; color:var(--gray); margin-bottom:0.35rem; }
+.form-group input { width:100%; padding:0.6rem 0.85rem; border:1px solid var(--border); border-radius:8px; font-size:0.875rem; font-family:inherit; color:var(--ink); outline:none; background:var(--white); }
+.form-group input:focus { border-color:var(--blue); }
+.form-error { font-size:0.78rem; color:var(--red); min-height:1.2em; margin-top:0.4rem; }
+.divider-text { display:flex; align-items:center; gap:0.75rem; font-size:0.75rem; color:var(--gray); margin:1rem 0; }
+.divider-text::before,.divider-text::after { content:''; flex:1; height:1px; background:var(--border); }
+.btn-google { width:100%; background:var(--white); color:var(--ink); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.6rem; border-radius:8px; font-size:0.875rem; font-weight:500; cursor:pointer; font-family:inherit; }
+.btn-google:hover { background:var(--gray-light); }
+.btn-google img { width:18px; height:18px; }
+.modal-link { font-size:0.78rem; text-align:center; margin-top:1rem; color:var(--gray); }
+.modal-link a { color:var(--blue); text-decoration:none; }
+
+/* FOOTER */
+footer { padding:2rem 6%; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
+footer p { font-size:0.8rem; color:var(--gray); }
+.footer-links { display:flex; gap:1.5rem; }
+.footer-links a { font-size:0.8rem; color:var(--gray); text-decoration:none; }
+
+@media(max-width:700px){
+  .nav-links { display:none; }
+  .activity-grid { grid-template-columns:1fr; }
+  .modal-body, .view-body { padding:1rem 1.25rem; }
+  .modal-header, .view-header, .modal-footer, .view-footer { padding-left:1.25rem; padding-right:1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">
+    <img src="logo.png" alt="ASTRO" class="nav-logo-icon">
+    ASTRO v52
+  </a>
+  <ul class="nav-links">
+    <li><a href="activity.html" class="active">활동내역</a></li>
+    <li><a href="index.html#notice">공지사항</a></li>
+    <li><a href="apply.html">가입 신청</a></li>
+    <li><a href="community.html">커뮤니티</a></li>
+    <li><a href="calendar.html">일정</a></li>
+    <li><a href="suggestion.html">건의함</a></li>
+  </ul>
+  <div class="nav-right">
+    <span id="user-info"></span>
+    <button id="login-btn" class="btn btn-outline btn-sm">로그인</button>
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="mypage.html">👤 마이페이지</a>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div style="max-width:1200px;margin:0 auto;">
+    <p class="section-label">Activities</p>
+    <h1>활동내역 🚀</h1>
+    <p>ASTRO의 다양한 활동과 프로젝트 기록입니다. 사진과 영상으로 기억을 남깁니다.</p>
+  </div>
+</div>
+
+<div class="activity-container">
+  <div class="toolbar">
+    <span class="toolbar-left" id="act-count">전체 0개</span>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <button id="write-btn" class="btn btn-blue btn-sm" style="display:none">✏️ 활동 등록</button>
+    </div>
+  </div>
+  <div class="activity-grid" id="activity-grid">
+    <div class="act-empty">불러오는 중...</div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 ASTRO - Bugil Academy · 지도교사: 차미숙 선생님, 이현 선생님</p>
+  <div class="footer-links"><a href="#">인스타그램</a><a href="#">깃허브</a></div>
+</footer>
+
+<div id="toast-container"></div>
+
+<!-- WRITE MODAL -->
+<div id="write-modal" class="modal-overlay">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <h3>✏️ 활동 등록</h3>
+      <button class="modal-close-x" data-close="write-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="field-label">카테고리</label>
+        <select id="post-category" class="field">
+          <option value="실험">🛠️ 실험</option>
+          <option value="대회">🏆 대회</option>
+          <option value="학술교류">🎤 학술교류</option>
+          <option value="제작">💻 제작</option>
+          <option value="기타">📌 기타</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">제목</label>
+        <input type="text" id="post-title" class="field" placeholder="활동 제목을 입력하세요" maxlength="100">
+      </div>
+      <div>
+        <label class="field-label">내용</label>
+        <textarea id="post-content" class="field" placeholder="활동 내용을 상세히 적어주세요"></textarea>
+      </div>
+      <div>
+        <label class="field-label">사진 / 동영상 첨부 <span style="color:var(--gray);font-weight:400;">(최대 10개, 각 50MB 이하)</span></label>
+        <div class="upload-zone" id="upload-zone">
+          <div style="font-size:1.5rem;">📎</div>
+          <p>클릭하거나 파일을 끌어다 놓으세요<br>이미지(jpg/png/gif/webp) 또는 동영상(mp4/mov/webm)</p>
+          <input type="file" id="media-input" accept="image/*,video/*" multiple>
+        </div>
+        <div class="media-preview-list" id="media-preview"></div>
+        <p style="font-size:0.75rem;color:var(--gray);margin-top:0.5rem;">⚠️ 미디어는 Firebase Storage에 업로드됩니다. Storage 설정을 확인하세요.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" data-close="write-modal">취소</button>
+      <button class="btn btn-blue btn-sm" id="post-submit-btn">게시하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div id="view-modal" class="modal-overlay">
+  <div class="modal-inner">
+    <div class="view-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
+        <h2 id="view-title"></h2>
+        <button class="modal-close-x" data-close="view-modal" style="flex-shrink:0;margin-top:2px;">✕</button>
+      </div>
+      <div class="view-meta">
+        <span>📁 <span id="view-category"></span></span>
+        <span>👤 <span id="view-author"></span></span>
+        <span>📅 <span id="view-date"></span></span>
+        <span>👁 <span id="view-views"></span></span>
+      </div>
+    </div>
+    <div class="view-body">
+      <div class="media-gallery" id="view-gallery" style="display:none;"></div>
+      <div class="view-content" id="view-content"></div>
+      <div class="comments-section">
+        <div class="comments-title" id="comments-title">댓글 0개</div>
+        <div class="comment-list" id="comment-list"></div>
+        <div id="comment-write-area"></div>
+      </div>
+    </div>
+    <div class="view-footer" id="view-footer-actions"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button id="lightbox-close">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" class="modal-overlay">
+  <div class="modal-inner">
+    <div id="login-tab">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <h3 style="font-size:1.1rem;font-weight:700;">🔐 로그인</h3>
+        <button class="modal-close-x" data-close="login-modal">✕</button>
+      </div>
+      <button id="google-login-btn" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Google로 로그인
+      </button>
+      <div class="divider-text">또는 이메일로 로그인</div>
+      <form id="email-login-form">
+        <div class="form-group"><label>이메일</label><input type="email" id="login-email" placeholder="example@email.com" required></div>
+        <div class="form-group"><label>비밀번호</label><input type="password" id="login-pw" required></div>
+        <p id="login-error" class="form-error"></p>
+        <button type="submit" class="btn btn-blue" style="width:100%">로그인</button>
+      </form>
+      <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
+    </div>
+    <div id="signup-tab" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <h3 style="font-size:1.1rem;font-weight:700;">✏️ 회원가입</h3>
+        <button class="modal-close-x" data-close="login-modal">✕</button>
+      </div>
+      <form id="email-signup-form">
+        <div class="form-group"><label>이메일</label><input type="email" id="signup-email" placeholder="example@email.com" required></div>
+        <div class="form-group"><label>비밀번호 (6자 이상)</label><input type="password" id="signup-pw" required minlength="6"></div>
+        <p id="signup-error" class="form-error"></p>
+        <button type="submit" class="btn btn-blue" style="width:100%">가입하기</button>
+      </form>
+      <p class="modal-link">이미 계정이 있으신가요? <a href="#" id="go-login">로그인</a></p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
+  signOut, onAuthStateChanged, createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, deleteDoc,
+  doc, getDoc, updateDoc, query, orderBy, serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
+  authDomain:"astro-bugil-a1dd7.firebaseapp.com",
+  projectId:"astro-bugil-a1dd7",
+  storageBucket:"astro-bugil-a1dd7.firebasestorage.app",
+  messagingSenderId:"751134919017",
+  appId:"1:751134919017:web:814be1b6b5cefb09c595f8"
+};
+
+const app     = initializeApp(firebaseConfig);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
+const storage = getStorage(app);
+const gp      = new GoogleAuthProvider();
+
+const OWNER_EMAILS = ['yunthomas0120@gmail.com','yunarchive0120@gmail.com'];
+function isOwner(u) { return !!u && OWNER_EMAILS.includes(u.email); }
+let _adminSet = null;
+async function fetchAdmins() {
+  try { const s = await getDocs(collection(db,'admins')); _adminSet = new Set(s.docs.map(d=>d.id)); }
+  catch { _adminSet = new Set(); }
+}
+async function checkAdmin(user) {
+  if (!user) return false; if (isOwner(user)) return true;
+  if (!_adminSet) await fetchAdmins(); return _adminSet.has(user.email);
+}
+
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts){ if(!ts)return''; const d=new Date(ts.toMillis()),now=new Date(),diff=now-d; if(diff<60000)return'방금 전'; if(diff<3600000)return`${Math.floor(diff/60000)}분 전`; if(diff<86400000)return`${Math.floor(diff/3600000)}시간 전`; return d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function fmtFull(ts){ return ts?new Date(ts.toMillis()).toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):''; }
+function maskName(n){ if(!n)return'익명'; if(n.includes('@')){const l=n.split('@')[0]; return l[0]+'*'.repeat(Math.min(l.length-1,6));} return n[0]+'*'.repeat(n.length-1); }
+function toast(msg,type='info'){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className=`toast toast-${type}`; el.textContent=msg; c.appendChild(el); setTimeout(()=>el.remove(),3200); }
+function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+function translateAuthError(c){ const m={'auth/user-not-found':'등록되지 않은 이메일입니다.','auth/wrong-password':'비밀번호가 틀렸습니다.','auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.','auth/email-already-in-use':'이미 사용 중인 이메일입니다.','auth/weak-password':'비밀번호는 6자 이상이어야 합니다.','auth/popup-closed-by-user':'로그인 창이 닫혔습니다.'}; return m[c]||c; }
+
+let currentUser = null, isAdminUser = false, currentPostId = null;
+let pendingFiles = []; // {file, previewUrl, type}
+
+// ── 게시글 로드 ───────────────────────────────────────────────────────────────
+async function loadPosts() {
+  const grid = document.getElementById('activity-grid');
+  grid.innerHTML = '<div class="act-empty">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db,'activity_posts'), orderBy('createdAt','desc')));
+    const posts = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('act-count').textContent = `전체 ${posts.length}개`;
+    if (!posts.length) { grid.innerHTML='<div class="act-empty">아직 등록된 활동이 없습니다.</div>'; return; }
+    grid.innerHTML = '';
+    posts.forEach(post => {
+      const card = document.createElement('div');
+      card.className = 'act-card';
+      const firstMedia = post.mediaUrls?.[0];
+      let mediaHtml = '';
+      if (firstMedia) {
+        const isVideo = firstMedia.match(/\.(mp4|mov|webm)/i) || post.mediaTypes?.[0]==='video';
+        mediaHtml = isVideo
+          ? `<video class="act-card-media" src="${firstMedia}" muted></video>`
+          : `<img class="act-card-media" src="${firstMedia}" alt="${esc(post.title)}" loading="lazy">`;
+      } else {
+        mediaHtml = `<div class="act-card-media-placeholder">🚀</div>`;
+      }
+      card.innerHTML = `
+        ${mediaHtml}
+        <div class="act-card-body">
+          <span class="act-card-badge">${esc(post.category||'기타')}</span>
+          <div class="act-card-title">${esc(post.title)}</div>
+          <div class="act-card-excerpt">${esc(post.content)}</div>
+          <div class="act-card-meta">
+            <span>📅 ${fmtDate(post.createdAt)}</span>
+            <span>👁 ${post.views||0}</span>
+            ${post.mediaUrls?.length ? `<span>📎 ${post.mediaUrls.length}</span>` : ''}
+          </div>
+        </div>`;
+      card.addEventListener('click', ()=>openPost(post.id));
+      grid.appendChild(card);
+    });
+  } catch(e) { grid.innerHTML=`<div class="act-empty" style="color:var(--red)">로드 실패: ${esc(e.message)}</div>`; }
+}
+
+// ── 게시글 열기 ───────────────────────────────────────────────────────────────
+async function openPost(postId) {
+  currentPostId = postId;
+  if (currentUser) { try { await updateDoc(doc(db,'activity_posts',postId),{views:increment(1)}); } catch {} }
+  try {
+    const snap = await getDoc(doc(db,'activity_posts',postId));
+    if (!snap.exists()) { toast('삭제된 게시글입니다.','error'); return; }
+    const d = snap.data();
+    document.getElementById('view-title').textContent    = d.title;
+    document.getElementById('view-category').textContent = d.category||'기타';
+    document.getElementById('view-author').textContent   = maskName(d.authorName||d.authorEmail);
+    document.getElementById('view-date').textContent     = fmtFull(d.createdAt);
+    document.getElementById('view-views').textContent    = (d.views||0)+(currentUser?1:0)+' 조회';
+    document.getElementById('view-content').textContent  = d.content;
+
+    // 미디어 갤러리
+    const gallery = document.getElementById('view-gallery');
+    gallery.innerHTML = '';
+    if (d.mediaUrls?.length) {
+      gallery.style.display = 'grid';
+      d.mediaUrls.forEach((url,i) => {
+        const isVideo = url.match(/\.(mp4|mov|webm)/i) || d.mediaTypes?.[i]==='video';
+        if (isVideo) {
+          const v = document.createElement('video');
+          v.className='gallery-video'; v.src=url; v.controls=true; v.style.gridColumn='1/-1';
+          gallery.appendChild(v);
+        } else {
+          const img = document.createElement('img');
+          img.className='gallery-img'; img.src=url; img.alt='';
+          img.addEventListener('click',()=>{ document.getElementById('lightbox-img').src=url; document.getElementById('lightbox').classList.add('open'); });
+          gallery.appendChild(img);
+        }
+      });
+    } else { gallery.style.display='none'; }
+
+    // footer 버튼
+    const footer = document.getElementById('view-footer-actions');
+    footer.innerHTML = '';
+    if (isOwner(currentUser)||isAdminUser) {
+      const b = document.createElement('button');
+      b.className='btn btn-danger btn-sm'; b.textContent='🗑️ 삭제';
+      b.addEventListener('click',()=>deletePost(postId));
+      footer.appendChild(b);
+    }
+
+    openModal('view-modal');
+    loadComments(postId);
+  } catch(e) { toast('불러오기 실패: '+e.message,'error'); }
+}
+
+async function deletePost(postId) {
+  if (!isOwner(currentUser)&&!isAdminUser) { toast('권한 없음','error'); return; }
+  if (!confirm('이 활동 게시글을 삭제할까요? 미디어 파일도 함께 삭제됩니다.')) return;
+  try {
+    const snap = await getDoc(doc(db,'activity_posts',postId));
+    if (snap.exists()&&snap.data().storagePaths) {
+      for (const path of snap.data().storagePaths) {
+        try { await deleteObject(ref(storage,path)); } catch {}
+      }
+    }
+    const cs = await getDocs(collection(db,'activity_posts',postId,'comments'));
+    await Promise.all(cs.docs.map(d=>deleteDoc(d.ref)));
+    await deleteDoc(doc(db,'activity_posts',postId));
+    closeModal('view-modal'); toast('삭제되었습니다.','info'); loadPosts();
+  } catch(e) { toast('삭제 실패: '+e.message,'error'); }
+}
+
+// ── 댓글 ─────────────────────────────────────────────────────────────────────
+async function loadComments(postId) {
+  const listEl   = document.getElementById('comment-list');
+  const titleEl  = document.getElementById('comments-title');
+  const writeArea= document.getElementById('comment-write-area');
+  listEl.innerHTML = '<div class="comment-empty">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db,'activity_posts',postId,'comments'),orderBy('createdAt','asc')));
+    titleEl.textContent = `댓글 ${snap.size}개`;
+    listEl.innerHTML = '';
+    if (snap.empty) { listEl.innerHTML='<div class="comment-empty">첫 댓글을 남겨보세요!</div>'; }
+    else snap.forEach(d=>{
+      const data=d.data();
+      const displayName=data.authorName||data.authorEmail;
+      const isMyComment=currentUser&&currentUser.email===data.authorEmail;
+      const canDel=isOwner(currentUser)||isAdminUser||isMyComment;
+      const item=document.createElement('div'); item.className='comment-item';
+      item.innerHTML=`
+        <div class="comment-avatar">${(displayName?.[0]||'?').toUpperCase()}</div>
+        <div class="comment-main">
+          <div class="comment-author">${esc(maskName(displayName))}</div>
+          <div class="comment-text">${esc(data.content)}</div>
+          <div class="comment-date">${fmtFull(data.createdAt)}</div>
+        </div>
+        ${canDel?`<button class="comment-del-btn" data-cid="${d.id}" data-author="${data.authorEmail}" title="삭제">✕</button>`:''}`;
+      item.querySelectorAll('[data-cid]').forEach(b=>b.addEventListener('click',()=>deleteComment(postId,b.dataset.cid,b.dataset.author)));
+      listEl.appendChild(item);
+    });
+  } catch(e) { listEl.innerHTML=`<div class="comment-empty" style="color:var(--red)">오류: ${e.message}</div>`; }
+
+  writeArea.innerHTML='';
+  if (currentUser) {
+    const row=document.createElement('div'); row.className='comment-write';
+    const inp=document.createElement('input'); inp.type='text'; inp.className='comment-input'; inp.placeholder='댓글을 입력하세요...'; inp.maxLength=300;
+    const btn=document.createElement('button'); btn.className='btn btn-blue btn-sm'; btn.textContent='등록';
+    btn.addEventListener('click',async()=>{
+      const val=inp.value.trim(); if(!val)return; btn.disabled=true;
+      try {
+        await addDoc(collection(db,'activity_posts',postId,'comments'),{content:val,authorEmail:currentUser.email,authorName:currentUser.displayName||'',createdAt:serverTimestamp()});
+        inp.value=''; loadComments(postId);
+      } catch(e){toast('등록 실패: '+e.message,'error');}
+      btn.disabled=false;
+    });
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')btn.click();});
+    row.appendChild(inp); row.appendChild(btn); writeArea.appendChild(row);
+  } else {
+    writeArea.innerHTML='<div class="comment-login-notice">💬 댓글을 달려면 <a href="#" id="cmt-login" style="color:var(--blue);font-weight:500;text-decoration:none;">로그인</a>이 필요합니다.</div>';
+    document.getElementById('cmt-login')?.addEventListener('click',e=>{e.preventDefault();closeModal('view-modal');openModal('login-modal');});
+  }
+}
+
+async function deleteComment(postId,cid,authorEmail) {
+  const isMine=currentUser&&currentUser.email===authorEmail;
+  if (!isOwner(currentUser)&&!isAdminUser&&!isMine){toast('권한 없음','error');return;}
+  if (!confirm('댓글을 삭제할까요?')) return;
+  await deleteDoc(doc(db,'activity_posts',postId,'comments',cid));
+  loadComments(postId); toast('삭제되었습니다.','info');
+}
+
+// ── 파일 업로드 ───────────────────────────────────────────────────────────────
+function addFiles(files) {
+  for (const file of files) {
+    if (pendingFiles.length >= 10) { toast('최대 10개까지 첨부 가능합니다.','error'); break; }
+    if (file.size > 50*1024*1024) { toast(`${file.name}: 파일 크기가 50MB를 초과합니다.`,'error'); continue; }
+    const type = file.type.startsWith('video/') ? 'video' : 'image';
+    const previewUrl = URL.createObjectURL(file);
+    pendingFiles.push({file,previewUrl,type});
+  }
+  renderPreviews();
+}
+
+function renderPreviews() {
+  const el=document.getElementById('media-preview'); el.innerHTML='';
+  pendingFiles.forEach((item,i)=>{
+    const wrap=document.createElement('div'); wrap.className='media-thumb-wrap';
+    let thumb;
+    if(item.type==='video'){ thumb=document.createElement('video'); thumb.className='media-thumb'; thumb.src=item.previewUrl; }
+    else { thumb=document.createElement('img'); thumb.className='media-thumb'; thumb.src=item.previewUrl; }
+    const del=document.createElement('button'); del.className='media-thumb-del'; del.textContent='✕';
+    del.addEventListener('click',()=>{ pendingFiles.splice(i,1); renderPreviews(); });
+    wrap.appendChild(thumb); wrap.appendChild(del); el.appendChild(wrap);
+  });
+}
+
+async function submitPost() {
+  if (!currentUser||(await checkAdmin(currentUser))===false){toast('관리자만 게시할 수 있습니다.','error');return;}
+  const title   = document.getElementById('post-title').value.trim();
+  const content = document.getElementById('post-content').value.trim();
+  const category= document.getElementById('post-category').value;
+  if (!title)   { toast('제목을 입력하세요.','error'); return; }
+  if (!content) { toast('내용을 입력하세요.','error'); return; }
+
+  const btn=document.getElementById('post-submit-btn'); btn.disabled=true; btn.textContent='업로드 중...';
+  try {
+    // 미디어 업로드
+    const mediaUrls=[]; const mediaTypes=[]; const storagePaths=[];
+    for (const item of pendingFiles) {
+      const path=`activity_media/${Date.now()}_${item.file.name}`;
+      const storageRef=ref(storage,path);
+      await uploadBytes(storageRef,item.file);
+      const url=await getDownloadURL(storageRef);
+      mediaUrls.push(url); mediaTypes.push(item.type); storagePaths.push(path);
+    }
+    await addDoc(collection(db,'activity_posts'),{
+      title,content,category,authorEmail:currentUser.email,
+      authorName:currentUser.displayName||'',
+      mediaUrls,mediaTypes,storagePaths,
+      createdAt:serverTimestamp(),views:0
+    });
+    closeModal('write-modal');
+    document.getElementById('post-title').value='';
+    document.getElementById('post-content').value='';
+    pendingFiles=[]; renderPreviews();
+    toast('활동이 등록되었습니다.','success'); loadPosts();
+  } catch(e){ toast('등록 실패: '+e.message,'error'); }
+  btn.disabled=false; btn.textContent='게시하기';
+}
+
+// ── Auth 상태 ─────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user=>{
+  currentUser=user;
+  const loginBtn=document.getElementById('login-btn');
+  const menuWrap=document.getElementById('user-menu-wrap');
+  const userInfo=document.getElementById('user-info');
+  const writeBtn=document.getElementById('write-btn');
+  if (user) {
+    isAdminUser=await checkAdmin(user);
+    loginBtn.style.display='none'; menuWrap.style.display='flex';
+    userInfo.textContent=isOwner(user)?`👑 ${user.displayName||user.email}`:isAdminUser?`💻 ${user.displayName||user.email}`:(user.displayName||user.email);
+    userInfo.style.display='inline';
+    writeBtn.style.display=isAdminUser?'inline-flex':'none';
+  } else {
+    isAdminUser=false; loginBtn.style.display='inline-block'; menuWrap.style.display='none'; userInfo.style.display='none'; writeBtn.style.display='none';
+  }
+  if (currentPostId&&document.getElementById('view-modal').classList.contains('open')) loadComments(currentPostId);
+});
+
+// ── DOMContentLoaded ──────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  loadPosts();
+
+  document.getElementById('write-btn').addEventListener('click',()=>openModal('write-modal'));
+  document.getElementById('post-submit-btn').addEventListener('click',submitPost);
+
+  // 파일 업로드
+  const uploadZone=document.getElementById('upload-zone');
+  const mediaInput=document.getElementById('media-input');
+  uploadZone.addEventListener('click',()=>mediaInput.click());
+  mediaInput.addEventListener('change',e=>addFiles(e.target.files));
+  uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.style.borderColor='var(--blue)';});
+  uploadZone.addEventListener('dragleave',()=>uploadZone.style.borderColor='');
+  uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.style.borderColor='';addFiles(e.dataTransfer.files);});
+
+  // lightbox
+  document.getElementById('lightbox-close').addEventListener('click',()=>document.getElementById('lightbox').classList.remove('open'));
+  document.getElementById('lightbox').addEventListener('click',e=>{if(e.target.id==='lightbox')e.target.classList.remove('open');});
+
+  // 모달 닫기
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.close; closeModal(id);
+    if(id==='view-modal'){currentPostId=null; pendingFiles=[];}
+  }));
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{
+    if(e.target!==o)return; const id=o.id; closeModal(id);
+    if(id==='view-modal'){currentPostId=null;}
+  }));
+
+  // 드롭다운
+  const dropdown=document.getElementById('user-dropdown');
+  document.getElementById('user-menu-btn').addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open');});
+  document.addEventListener('click',()=>dropdown.classList.remove('open'));
+  document.getElementById('login-btn').addEventListener('click',()=>openModal('login-modal'));
+  document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);toast('로그아웃되었습니다.','info');});
+
+  // 구글 로그인
+  document.getElementById('google-login-btn').addEventListener('click',async()=>{
+    try{await signInWithPopup(auth,gp);closeModal('login-modal');toast('Google 로그인 성공','success');}
+    catch(ex){document.getElementById('login-error').textContent=translateAuthError(ex.code);}
+  });
+  // 이메일 로그인
+  document.getElementById('email-login-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{await signInWithEmailAndPassword(auth,document.getElementById('login-email').value,document.getElementById('login-pw').value);closeModal('login-modal');toast('로그인되었습니다.','success');}
+    catch(ex){document.getElementById('login-error').textContent='로그인 실패: '+translateAuthError(ex.code);}
+  });
+  // 회원가입
+  document.getElementById('email-signup-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{await createUserWithEmailAndPassword(auth,document.getElementById('signup-email').value,document.getElementById('signup-pw').value);closeModal('login-modal');toast('가입 완료','success');}
+    catch(ex){document.getElementById('signup-error').textContent='가입 실패: '+translateAuthError(ex.code);}
+  });
+  document.getElementById('go-signup').addEventListener('click',e=>{e.preventDefault();document.getElementById('login-tab').style.display='none';document.getElementById('signup-tab').style.display='block';});
+  document.getElementById('go-login').addEventListener('click',e=>{e.preventDefault();document.getElementById('signup-tab').style.display='none';document.getElementById('login-tab').style.display='block';});
+});
+</script>
+</body>
+</html>
