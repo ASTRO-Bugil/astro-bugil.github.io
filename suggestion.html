@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>건의함 — ASTRO Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#3b82f6; --blue-light:#eff6ff; --blue-mid:#dbeafe;
+    --ink:#1e293b; --gray:#64748b; --gray-light:#f1f5f9;
+    --border:#e2e8f0; --white:#ffffff; --red:#dc2626;
+    --red-light:#fef2f2; --green:#10b981;
+  }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--white); color:var(--ink); font-size:15px; line-height:1.7; }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--white); z-index:10; }
+  .logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+  .nav-logo-icon { width:36px; height:36px; object-fit:contain; }
+  .nav-links { display:flex; gap:1.5rem; list-style:none; }
+  .nav-links a { font-size:0.875rem; color:var(--gray); text-decoration:none; transition:color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--ink); font-weight:500; }
+  .nav-right { display:flex; align-items:center; gap:0.75rem; }
+  #user-info { font-size:0.8rem; color:var(--gray); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+  .btn { display:inline-block; padding:0.6rem 1.4rem; border-radius:8px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.2s; border:none; font-family:inherit; }
+  .btn-blue { background:var(--blue); color:var(--white); }
+  .btn-blue:hover { background:#2563eb; }
+  .btn-blue:disabled { opacity:0.6; cursor:not-allowed; }
+  .btn-outline { background:transparent; color:var(--gray); border:1px solid var(--border); }
+  .btn-outline:hover { background:var(--gray-light); color:var(--ink); }
+  .btn-sm { padding:0.45rem 1rem; font-size:0.8rem; }
+  .nav-menu-wrap { position:relative; }
+  .nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; }
+  .nav-dropdown.open { display:block; }
+  .nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; text-decoration:none; }
+  .nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
+  .nav-dropdown button.danger { color:var(--red); }
+  .dropdown-divider { height:1px; background:var(--border); }
+
+  .page-wrap { max-width:680px; margin:0 auto; padding:48px 6% 64px; }
+  .section-label { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--blue); margin-bottom:0.5rem; }
+  h1 { font-size:1.8rem; font-weight:700; letter-spacing:-0.02em; margin-bottom:0.4rem; }
+  .hero-desc { font-size:0.9rem; color:var(--gray); font-weight:300; margin-bottom:2.5rem; }
+
+  .anon-notice { background:var(--gray-light); border:1px solid var(--border); border-radius:12px; padding:1rem 1.25rem; margin-bottom:2rem; display:flex; align-items:flex-start; gap:0.75rem; }
+  .anon-notice span { font-size:1.2rem; flex-shrink:0; }
+  .anon-notice p { font-size:0.85rem; color:var(--gray); line-height:1.6; }
+  .anon-notice strong { color:var(--ink); }
+
+  .form-card { border:1px solid var(--border); border-radius:14px; padding:2rem; }
+  .form-group { margin-bottom:1.25rem; }
+  .form-group label { display:block; font-size:0.82rem; font-weight:500; color:var(--gray); margin-bottom:0.4rem; }
+  .form-group input, .form-group textarea, .form-group select { width:100%; padding:0.65rem 0.9rem; border:1px solid var(--border); border-radius:8px; font-size:0.875rem; font-family:inherit; color:var(--ink); outline:none; transition:border-color 0.2s; background:var(--white); }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color:var(--blue); }
+  .char-count { font-size:0.75rem; color:var(--gray); text-align:right; margin-top:0.25rem; }
+  .form-error { font-size:0.78rem; color:var(--red); margin-top:0.4rem; }
+
+  .cat-wrap { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .cat-btn { padding:5px 12px; border:1.5px solid var(--border); border-radius:20px; font-size:0.78rem; font-weight:500; cursor:pointer; background:none; font-family:inherit; transition:all 0.15s; color:var(--gray); }
+  .cat-btn:hover, .cat-btn.selected { border-color:var(--blue); background:var(--blue-light); color:var(--blue); }
+
+  .success-box { display:none; border:1px solid var(--green); background:var(--green-light, #ecfdf5); border-radius:12px; padding:2rem; text-align:center; }
+  .success-box.visible { display:block; }
+  .success-box .icon { font-size:2.5rem; margin-bottom:0.75rem; }
+  .success-box h3 { font-size:1.1rem; font-weight:700; margin-bottom:0.5rem; color:var(--ink); }
+  .success-box p { font-size:0.875rem; color:var(--gray); margin-bottom:1.25rem; }
+
+  footer { padding:2rem 6%; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
+  footer p { font-size:0.8rem; color:var(--gray); }
+  .footer-links { display:flex; gap:1.5rem; }
+  .footer-links a { font-size:0.8rem; color:var(--gray); text-decoration:none; }
+
+  #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:0.5rem; z-index:9999; }
+  .toast { padding:0.75rem 1.25rem; border-radius:10px; font-size:0.85rem; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:300px; }
+  .toast-success { background:var(--green); color:white; }
+  .toast-error   { background:var(--red);   color:white; }
+  .toast-info    { background:var(--blue);  color:white; }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; align-items:center; justify-content:center; padding:1rem; }
+  .modal { background:var(--white); border-radius:16px; padding:2rem; width:100%; max-width:420px; position:relative; max-height:90vh; overflow-y:auto; }
+  .modal-close { position:absolute; top:1rem; right:1rem; background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--gray); }
+  .modal h3 { font-size:1.1rem; font-weight:700; margin-bottom:1.5rem; }
+  .divider-text { display:flex; align-items:center; gap:0.75rem; font-size:0.75rem; color:var(--gray); margin:1rem 0; }
+  .divider-text::before,.divider-text::after { content:''; flex:1; height:1px; background:var(--border); }
+  .btn-google { width:100%; background:var(--white); color:var(--ink); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.6rem; border-radius:8px; font-size:0.875rem; font-weight:500; cursor:pointer; font-family:inherit; transition:background 0.15s; }
+  .btn-google:hover { background:var(--gray-light); }
+  .btn-google img { width:18px; height:18px; }
+  .modal-link { font-size:0.78rem; text-align:center; margin-top:1rem; color:var(--gray); }
+  .modal-link a { color:var(--blue); text-decoration:none; }
+
+  @media(max-width:600px){ .nav-links{display:none} }
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">
+    <img src="logo.png" alt="ASTRO" class="nav-logo-icon"> ASTRO v53
+  </a>
+  <ul class="nav-links">
+    <li><a href="activity.html">활동내역</a></li>
+    <li><a href="index.html#notice">공지사항</a></li>
+    <li><a href="apply.html">가입 신청</a></li>
+    <li><a href="community.html">커뮤니티</a></li>
+    <li><a href="calendar.html">일정</a></li>
+    <li><a href="suggestion.html" class="active">건의함</a></li>
+  </ul>
+  <div class="nav-right">
+    <span id="user-info"></span>
+    <button id="login-btn" class="btn btn-outline btn-sm">로그인</button>
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="mypage.html">👤 마이페이지</a>
+        <div class="dropdown-divider"></div>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <p class="section-label">Suggestion Box</p>
+  <h1>익명 건의함 📬</h1>
+  <p class="hero-desc">동아리 운영에 대한 의견, 건의 사항을 자유롭게 남겨주세요.</p>
+
+  <div class="anon-notice">
+    <span>🔒</span>
+    <p><strong>완전한 익명 보장</strong> — 제출한 건의글은 운영담당자와 관리자만 열람할 수 있으며, 작성자의 신원은 저장되지 않습니다. 솔직하게 의견을 남겨주세요.</p>
+  </div>
+
+  <div class="form-card" id="form-section">
+    <div class="form-group">
+      <label>카테고리</label>
+      <div class="cat-wrap" id="cat-wrap">
+        <button class="cat-btn selected" data-cat="일반">💬 일반</button>
+        <button class="cat-btn" data-cat="활동">🛠️ 활동 제안</button>
+        <button class="cat-btn" data-cat="운영">📋 운영 개선</button>
+        <button class="cat-btn" data-cat="시설">🏫 시설/환경</button>
+        <button class="cat-btn" data-cat="기타">📝 기타</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>제목 *</label>
+      <input type="text" id="sg-title" placeholder="건의 제목을 간단히 작성해주세요." maxlength="60">
+      <div class="char-count"><span id="title-count">0</span>/60</div>
+    </div>
+    <div class="form-group">
+      <label>내용 *</label>
+      <textarea id="sg-content" rows="6" placeholder="건의 내용을 구체적으로 작성해주세요. 내용이 구체적일수록 반영 가능성이 높아집니다." maxlength="1000"></textarea>
+      <div class="char-count"><span id="content-count">0</span>/1000</div>
+    </div>
+    <div class="form-group">
+      <label>비밀번호 (선택) — 마이페이지에서 확인/삭제에 사용됩니다</label>
+      <input type="password" id="sg-password" placeholder="4자 이상 입력 시 나중에 삭제 가능 (선택)" maxlength="30">
+    </div>
+    <p id="sg-error" class="form-error"></p>
+    <button class="btn btn-blue" id="submit-btn" style="width:100%">익명으로 건의하기</button>
+    <p style="font-size:0.75rem;color:var(--gray);margin-top:0.75rem;text-align:center;">제출 후 수정은 불가합니다. 내용을 다시 한번 확인해주세요.</p>
+  </div>
+
+  <div class="success-box" id="success-box">
+    <div class="icon">✅</div>
+    <h3>건의글이 제출되었습니다!</h3>
+    <p>소중한 의견 감사합니다. 운영팀에서 검토 후 반영하겠습니다.</p>
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">새 건의 작성</button>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 ASTRO - Bugil Academy · 지도교사: 차미숙 선생님, 이현 선생님</p>
+  <div class="footer-links"><a href="#">인스타그램</a><a href="#">깃허브</a></div>
+</footer>
+
+<div id="toast-container"></div>
+<div id="login-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <div id="login-tab">
+      <h3>🔐 로그인</h3>
+      <button id="google-login-btn" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Google로 로그인
+      </button>
+      <div class="divider-text">또는 이메일로 로그인</div>
+      <div class="form-group"><label>이메일</label><input type="email" id="login-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>비밀번호</label><input type="password" id="login-pw" placeholder="비밀번호"></div>
+      <p id="login-error" class="form-error"></p>
+      <button id="do-login-btn" class="btn btn-blue" style="width:100%;margin-top:0.5rem;">로그인</button>
+      <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
+    </div>
+    <div id="signup-tab" style="display:none">
+      <h3>✏️ 회원가입</h3>
+      <div class="form-group"><label>이메일</label><input type="email" id="signup-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>비밀번호</label><input type="password" id="signup-pw" placeholder="6자 이상"></div>
+      <p id="signup-error" class="form-error"></p>
+      <button id="do-signup-btn" class="btn btn-blue" style="width:100%;margin-top:0.5rem;">가입하기</button>
+      <p class="modal-link">이미 계정이 있으신가요? <a href="#" id="go-login">로그인</a></p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey:"AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0", authDomain:"astro-bugil-a1dd7.firebaseapp.com", projectId:"astro-bugil-a1dd7", storageBucket:"astro-bugil-a1dd7.firebasestorage.app", messagingSenderId:"751134919017", appId:"1:751134919017:web:814be1b6b5cefb09c595f8" };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const gp   = new GoogleAuthProvider();
+const OWNER_EMAILS = ['yunthomas0120@gmail.com','yunarchive0120@gmail.com'];
+
+function toast(msg,type='info'){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className=`toast toast-${type}`; el.textContent=msg; c.appendChild(el); setTimeout(()=>el.remove(),3200); }
+function openModal(id){ document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+function closeAllModals(){ document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none'); document.body.style.overflow=''; }
+function translateAuthError(code){ const m={'auth/user-not-found':'등록되지 않은 이메일입니다.','auth/wrong-password':'비밀번호가 틀렸습니다.','auth/invalid-email':'이메일 형식이 잘못되었습니다.','auth/email-already-in-use':'이미 사용 중인 이메일입니다.','auth/weak-password':'비밀번호는 6자 이상이어야 합니다.','auth/popup-closed-by-user':'로그인 창이 닫혔습니다.','auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.'}; return m[code]||code; }
+
+onAuthStateChanged(auth, user=>{
+  const loginBtn=document.getElementById('login-btn');
+  const menuWrap=document.getElementById('user-menu-wrap');
+  const userInfo=document.getElementById('user-info');
+  if(user){
+    loginBtn.style.display='none'; menuWrap.style.display='flex';
+    userInfo.textContent=OWNER_EMAILS.includes(user.email)?`👑 ${user.displayName||user.email}`:user.displayName||user.email;
+    userInfo.style.display='inline';
+  } else {
+    loginBtn.style.display='inline-block'; menuWrap.style.display='none'; userInfo.style.display='none';
+  }
+});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // Cat buttons
+  document.querySelectorAll('.cat-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.cat-btn').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+  }));
+
+  // Char count
+  document.getElementById('sg-title').addEventListener('input',e=>document.getElementById('title-count').textContent=e.target.value.length);
+  document.getElementById('sg-content').addEventListener('input',e=>document.getElementById('content-count').textContent=e.target.value.length);
+
+  // Submit
+  document.getElementById('submit-btn').addEventListener('click',async()=>{
+    const title   = document.getElementById('sg-title').value.trim();
+    const content = document.getElementById('sg-content').value.trim();
+    const cat     = document.querySelector('.cat-btn.selected')?.dataset.cat||'일반';
+    const pw      = document.getElementById('sg-password').value;
+    const errEl   = document.getElementById('sg-error');
+    errEl.textContent='';
+    if(!title){ errEl.textContent='제목을 입력해주세요.'; return; }
+    if(!content){ errEl.textContent='내용을 입력해주세요.'; return; }
+    const btn=document.getElementById('submit-btn');
+    btn.disabled=true; btn.textContent='제출 중...';
+    try{
+      // Generate anonymous token for self-identification
+      const token = Math.random().toString(36).slice(2)+Date.now().toString(36);
+      await addDoc(collection(db,'suggestions'),{
+        title, content, category:cat,
+        hasPassword:!!pw, passwordHash: pw ? btoa(pw) : null,
+        anonToken: token,
+        createdAt: serverTimestamp()
+      });
+      // Store token locally for mypage lookup
+      const stored = JSON.parse(localStorage.getItem('sg_tokens')||'[]');
+      stored.push(token);
+      localStorage.setItem('sg_tokens', JSON.stringify(stored));
+      document.getElementById('form-section').style.display='none';
+      document.getElementById('success-box').classList.add('visible');
+    } catch(e){ errEl.textContent='제출 실패: '+e.message; btn.disabled=false; btn.textContent='익명으로 건의하기'; }
+  });
+
+  // Nav
+  const menuBtn=document.getElementById('user-menu-btn');
+  const dropdown=document.getElementById('user-dropdown');
+  menuBtn.addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open');});
+  document.addEventListener('click',()=>dropdown.classList.remove('open'));
+  document.getElementById('login-btn').addEventListener('click',()=>openModal('login-modal'));
+  document.getElementById('logout-btn').addEventListener('click',async()=>{ await signOut(auth); toast('로그아웃되었습니다.','info'); });
+  document.querySelectorAll('.modal-close').forEach(b=>b.addEventListener('click',closeAllModals));
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)closeAllModals(); }));
+  document.getElementById('do-login-btn').addEventListener('click',async()=>{
+    try{ await signInWithEmailAndPassword(auth,document.getElementById('login-email').value,document.getElementById('login-pw').value); closeAllModals(); toast('로그인되었습니다.','success'); }
+    catch(ex){ document.getElementById('login-error').textContent=translateAuthError(ex.code); }
+  });
+  document.getElementById('google-login-btn').addEventListener('click',async()=>{
+    try{ await signInWithPopup(auth,gp); closeAllModals(); toast('Google 로그인 성공','success'); }
+    catch(ex){ document.getElementById('login-error').textContent=translateAuthError(ex.code); }
+  });
+  document.getElementById('go-signup').addEventListener('click',e=>{ e.preventDefault(); document.getElementById('login-tab').style.display='none'; document.getElementById('signup-tab').style.display='block'; });
+  document.getElementById('go-login').addEventListener('click',e=>{ e.preventDefault(); document.getElementById('signup-tab').style.display='none'; document.getElementById('login-tab').style.display='block'; });
+  document.getElementById('do-signup-btn').addEventListener('click',async()=>{
+    try{ await createUserWithEmailAndPassword(auth,document.getElementById('signup-email').value,document.getElementById('signup-pw').value); closeAllModals(); toast('가입이 완료되었습니다.','success'); }
+    catch(ex){ document.getElementById('signup-error').textContent=translateAuthError(ex.code); }
+  });
+});
+</script>
+</body>
+</html>
