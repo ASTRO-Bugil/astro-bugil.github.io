@@ -374,7 +374,8 @@
           <button class="btn btn-outline btn-sm" onclick="switchTab('banner')">📢 배너 수정</button>
           <button class="btn btn-outline btn-sm" onclick="switchTab('admins')">👥 관리자 추가</button>
           <button class="btn btn-outline btn-sm" onclick="switchTab('questions')">❓ 질문 설정</button>
-          <a href="apply_info.html" target="_blank" class="btn btn-outline btn-sm">📋 신청자 관리 페이지</a>
+          <a href="apply_info.html" target="_blank" class="btn btn-outline btn-sm">📋 신청자 관리</a>
+          <a href="suggestion_info.html" target="_blank" class="btn btn-outline btn-sm">📬 건의함 관리</a>
         </div>
       </div>
 
@@ -481,9 +482,14 @@
             <p>모든 익명 건의 데이터를 삭제합니다.</p>
             <button class="btn-danger-solid" id="reset-suggestions-btn">건의함 초기화</button>
           </div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 일정 전체 삭제</div>
+            <p>모든 캘린더 일정 데이터를 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-events-btn">일정 초기화</button>
+          </div>
           <div class="danger-zone" style="border-color:#dc2626;background:#fff1f1;">
             <div class="danger-zone-title" style="font-size:0.85rem;">☢️ 웹사이트 전체 데이터 초기화</div>
-            <p style="font-weight:500;">위의 모든 데이터(공지, 신청, 커뮤니티, 활동내역, 건의함)를 한 번에 초기화합니다. 절대 되돌릴 수 없습니다.</p>
+            <p style="font-weight:500;">위의 모든 데이터를 한 번에 초기화합니다. 절대 되돌릴 수 없습니다.</p>
             <button class="btn-danger-solid" id="reset-all-btn" style="background:#7f1d1d;font-size:0.85rem;padding:0.5rem 1.25rem;">⚠️ 전체 초기화 실행</button>
           </div>
         </div>
