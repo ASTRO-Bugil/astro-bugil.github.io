@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>건의함 관리 — ASTRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#3b82f6; --blue-light:#eff6ff; --blue-mid:#dbeafe;
+    --ink:#1e293b; --gray:#64748b; --gray-light:#f1f5f9;
+    --border:#e2e8f0; --white:#ffffff; --red:#dc2626;
+    --red-light:#fef2f2; --green:#10b981; --green-light:#ecfdf5;
+    --purple:#8b5cf6; --purple-light:#f5f3ff;
+    --orange:#f59e0b; --orange-light:#fffbeb;
+  }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--gray-light); color:var(--ink); font-size:15px; line-height:1.7; }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); background:var(--white); position:sticky; top:0; z-index:10; }
+  .logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+  .nav-logo-icon { width:36px; height:36px; object-fit:contain; }
+  .nav-right { display:flex; align-items:center; gap:0.75rem; }
+  .btn { display:inline-block; padding:0.6rem 1.4rem; border-radius:8px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.2s; border:none; font-family:inherit; }
+  .btn-blue { background:var(--blue); color:var(--white); }
+  .btn-blue:hover { background:#2563eb; }
+  .btn-outline { background:transparent; color:var(--gray); border:1px solid var(--border); }
+  .btn-outline:hover { background:var(--gray-light); color:var(--ink); }
+  .btn-sm { padding:0.45rem 1rem; font-size:0.8rem; }
+  .btn-xs { padding:0.3rem 0.7rem; font-size:0.75rem; }
+  .nav-menu-wrap { position:relative; }
+  .nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; }
+  .nav-dropdown.open { display:block; }
+  .nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; text-decoration:none; }
+  .nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
+  .nav-dropdown button.danger { color:var(--red); }
+  .dropdown-divider { height:1px; background:var(--border); }
+
+  .page-header { background:var(--white); border-bottom:1px solid var(--border); padding:32px 6%; }
+  .section-label { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--blue); margin-bottom:0.4rem; }
+  .page-header h1 { font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+  .page-header p { font-size:0.9rem; color:var(--gray); font-weight:300; }
+  .access-badge { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; font-weight:600; padding:3px 10px; border-radius:20px; background:var(--purple-light); color:var(--purple); margin-top:0.75rem; }
+
+  .main-wrap { max-width:900px; margin:0 auto; padding:32px 6%; }
+
+  .filter-row { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; margin-bottom:1.5rem; }
+  .filter-btn { padding:5px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:0.78rem; font-weight:500; cursor:pointer; background:var(--white); font-family:inherit; transition:all 0.15s; color:var(--gray); }
+  .filter-btn:hover, .filter-btn.active { border-color:var(--blue); background:var(--blue-light); color:var(--blue); }
+  .filter-count { font-size:0.75rem; color:var(--gray); margin-left:auto; }
+
+  .sg-list { display:flex; flex-direction:column; gap:1rem; }
+  .sg-card { background:var(--white); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:box-shadow 0.2s; }
+  .sg-card:hover { box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+  .sg-card-header { padding:1rem 1.25rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid var(--border); cursor:pointer; }
+  .sg-cat-badge { font-size:0.7rem; font-weight:600; padding:3px 10px; border-radius:20px; flex-shrink:0; background:var(--blue-mid); color:var(--blue); }
+  .sg-cat-badge.일반 { background:var(--blue-mid); color:var(--blue); }
+  .sg-cat-badge.활동 { background:#dcfce7; color:#15803d; }
+  .sg-cat-badge.운영 { background:#fef3c7; color:#b45309; }
+  .sg-cat-badge.시설 { background:#f5f3ff; color:#7c3aed; }
+  .sg-cat-badge.기타 { background:var(--gray-light); color:var(--gray); }
+  .sg-title { flex:1; font-size:0.9rem; font-weight:600; color:var(--ink); }
+  .sg-date { font-size:0.75rem; color:var(--gray); flex-shrink:0; }
+  .sg-expand-icon { color:var(--gray); font-size:0.85rem; transition:transform 0.2s; flex-shrink:0; }
+  .sg-card.expanded .sg-expand-icon { transform:rotate(180deg); }
+  .sg-card-body { display:none; padding:1.25rem; }
+  .sg-card.expanded .sg-card-body { display:block; }
+  .sg-content-text { font-size:0.875rem; color:var(--ink); line-height:1.8; white-space:pre-wrap; background:var(--gray-light); padding:1rem; border-radius:8px; margin-bottom:1rem; }
+  .sg-actions { display:flex; justify-content:flex-end; }
+  .btn-danger-sm { background:var(--red-light); color:var(--red); border:1px solid #fecaca; padding:5px 14px; border-radius:8px; font-size:0.78rem; font-weight:500; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+  .btn-danger-sm:hover { background:var(--red); color:white; }
+
+  .empty-state { text-align:center; padding:3rem 1rem; color:var(--gray); }
+  .empty-state .icon { font-size:2.5rem; margin-bottom:0.75rem; }
+  .empty-state p { font-size:0.875rem; }
+
+  .gate { display:flex; align-items:center; justify-content:center; min-height:60vh; }
+  .gate-card { background:var(--white); border:1px solid var(--border); border-radius:16px; padding:3rem; text-align:center; max-width:400px; width:100%; }
+  .gate-card .icon { font-size:2.5rem; margin-bottom:1rem; }
+  .gate-card h2 { font-size:1.2rem; font-weight:700; margin-bottom:0.5rem; }
+  .gate-card p { font-size:0.875rem; color:var(--gray); margin-bottom:1.5rem; }
+
+  #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:0.5rem; z-index:9999; }
+  .toast { padding:0.75rem 1.25rem; border-radius:10px; font-size:0.85rem; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:300px; }
+  .toast-success { background:var(--green); color:white; }
+  .toast-error   { background:var(--red);   color:white; }
+  .toast-info    { background:var(--blue);  color:white; }
+  @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .toast { animation:fadein 0.2s ease; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">
+    <img src="logo.png" alt="ASTRO" class="nav-logo-icon"> ASTRO v53
+  </a>
+  <div class="nav-right">
+    <span id="user-info" style="font-size:0.8rem;color:var(--gray);display:none;"></span>
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="index.html">🏠 홈</a>
+        <a href="mypage.html">👤 마이페이지</a>
+        <div class="dropdown-divider"></div>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div id="gate-section" class="gate">
+  <div class="gate-card">
+    <div class="icon">🔒</div>
+    <h2>접근 권한 확인 중</h2>
+    <p>이 페이지는 관리자 및 운영담당자 전용입니다.<br>로그인 정보를 확인하는 중입니다...</p>
+  </div>
+</div>
+
+<div id="admin-section" style="display:none">
+  <div class="page-header">
+    <p class="section-label">Admin</p>
+    <h1>📬 익명 건의함 관리</h1>
+    <p>제출된 모든 익명 건의글을 열람하고 관리합니다.</p>
+    <div class="access-badge">🔒 관리자 전용</div>
+  </div>
+
+  <div class="main-wrap">
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" data-filter="전체">전체</button>
+      <button class="filter-btn" data-filter="일반">💬 일반</button>
+      <button class="filter-btn" data-filter="활동">🛠️ 활동</button>
+      <button class="filter-btn" data-filter="운영">📋 운영</button>
+      <button class="filter-btn" data-filter="시설">🏫 시설</button>
+      <button class="filter-btn" data-filter="기타">📝 기타</button>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+    <div class="sg-list" id="sg-list">
+      <div class="empty-state"><div class="icon">⏳</div><p>불러오는 중...</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey:"AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0", authDomain:"astro-bugil-a1dd7.firebaseapp.com", projectId:"astro-bugil-a1dd7", storageBucket:"astro-bugil-a1dd7.firebasestorage.app", messagingSenderId:"751134919017", appId:"1:751134919017:web:814be1b6b5cefb09c595f8" };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const OWNER_EMAILS = ['yunthomas0120@gmail.com','yunarchive0120@gmail.com'];
+
+let _adminSet = null;
+async function fetchAdmins(){ try{ const s=await getDocs(collection(db,'admins')); _adminSet=new Set(s.docs.map(d=>d.id)); }catch{ _adminSet=new Set(); } }
+async function checkAdmin(u){ if(!u)return false; if(OWNER_EMAILS.includes(u.email))return true; if(!_adminSet)await fetchAdmins(); return _adminSet.has(u.email); }
+
+function toast(msg,type='info'){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className=`toast toast-${type}`; el.textContent=msg; c.appendChild(el); setTimeout(()=>el.remove(),3200); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts){ return ts?new Date(ts.toMillis()).toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):''; }
+
+let allSuggestions = [];
+let currentFilter = '전체';
+
+async function loadSuggestions(){
+  try{
+    const snap = await getDocs(query(collection(db,'suggestions'), orderBy('createdAt','desc')));
+    allSuggestions = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderList();
+  } catch(e){ document.getElementById('sg-list').innerHTML=`<div class="empty-state"><div class="icon">❌</div><p>오류: ${esc(e.message)}</p></div>`; }
+}
+
+function renderList(){
+  const list = document.getElementById('sg-list');
+  const filtered = currentFilter==='전체' ? allSuggestions : allSuggestions.filter(s=>s.category===currentFilter);
+  document.getElementById('filter-count').textContent = `총 ${filtered.length}건`;
+  if(filtered.length===0){ list.innerHTML='<div class="empty-state"><div class="icon">📭</div><p>건의글이 없습니다.</p></div>'; return; }
+  list.innerHTML='';
+  filtered.forEach(sg=>{
+    const card = document.createElement('div');
+    card.className='sg-card';
+    card.innerHTML=`
+      <div class="sg-card-header">
+        <span class="sg-cat-badge ${esc(sg.category||'일반')}">${esc(sg.category||'일반')}</span>
+        <span class="sg-title">${esc(sg.title)}</span>
+        <span class="sg-date">${fmtDate(sg.createdAt)}</span>
+        <span class="sg-expand-icon">▼</span>
+      </div>
+      <div class="sg-card-body">
+        <div class="sg-content-text">${esc(sg.content)}</div>
+        <div class="sg-actions">
+          <button class="btn-danger-sm" data-id="${sg.id}">🗑️ 삭제</button>
+        </div>
+      </div>`;
+    card.querySelector('.sg-card-header').addEventListener('click',()=>card.classList.toggle('expanded'));
+    card.querySelector('.btn-danger-sm').addEventListener('click',async(e)=>{
+      e.stopPropagation();
+      if(!confirm('이 건의글을 삭제할까요?')) return;
+      try{
+        await deleteDoc(doc(db,'suggestions',sg.id));
+        toast('삭제되었습니다.','info');
+        await loadSuggestions();
+      } catch(err){ toast('삭제 실패: '+err.message,'error'); }
+    });
+    list.appendChild(card);
+  });
+}
+
+onAuthStateChanged(auth, async user=>{
+  const gate = document.getElementById('gate-section');
+  const adminSec = document.getElementById('admin-section');
+  const menuWrap = document.getElementById('user-menu-wrap');
+  const userInfo = document.getElementById('user-info');
+  if(!user){
+    gate.querySelector('h2').textContent='접근 거부';
+    gate.querySelector('p').textContent='관리자 계정으로 로그인이 필요합니다.';
+    gate.querySelector('.icon').textContent='🚫';
+    return;
+  }
+  const admin = await checkAdmin(user);
+  if(!admin){
+    gate.querySelector('h2').textContent='접근 거부';
+    gate.querySelector('p').textContent='관리자 권한이 없습니다.';
+    gate.querySelector('.icon').textContent='🚫';
+    return;
+  }
+  gate.style.display='none';
+  adminSec.style.display='block';
+  menuWrap.style.display='flex';
+  userInfo.textContent = OWNER_EMAILS.includes(user.email)?`👑 ${user.displayName||user.email}`:`💻 ${user.displayName||user.email}`;
+  userInfo.style.display='inline';
+  await loadSuggestions();
+});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const menuBtn=document.getElementById('user-menu-btn');
+  const dropdown=document.getElementById('user-dropdown');
+  menuBtn.addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open');});
+  document.addEventListener('click',()=>dropdown.classList.remove('open'));
+  document.getElementById('logout-btn').addEventListener('click',async()=>{ await signOut(auth); location.href='index.html'; });
+
+  document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    currentFilter=b.dataset.filter;
+    renderList();
+  }));
+});
+</script>
+</body>
+</html>
