@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>일정 — ASTRO Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#3b82f6; --blue-light:#eff6ff; --blue-mid:#dbeafe;
+    --ink:#1e293b; --gray:#64748b; --gray-light:#f1f5f9;
+    --border:#e2e8f0; --white:#ffffff; --red:#dc2626;
+    --red-light:#fef2f2; --orange:#f59e0b; --orange-light:#fffbeb;
+    --green:#10b981; --green-light:#ecfdf5;
+    --purple:#8b5cf6; --purple-light:#f5f3ff;
+  }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--white); color:var(--ink); font-size:15px; line-height:1.7; }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--white); z-index:10; }
+  .logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+  .nav-logo-icon { width:36px; height:36px; object-fit:contain; }
+  .nav-links { display:flex; gap:1.5rem; list-style:none; }
+  .nav-links a { font-size:0.875rem; color:var(--gray); text-decoration:none; transition:color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--ink); font-weight:500; }
+  .nav-right { display:flex; align-items:center; gap:0.75rem; }
+  #user-info { font-size:0.8rem; color:var(--gray); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+
+  .btn { display:inline-block; padding:0.6rem 1.4rem; border-radius:8px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.2s; border:none; font-family:inherit; }
+  .btn-blue { background:var(--blue); color:var(--white); }
+  .btn-blue:hover { background:#2563eb; }
+  .btn-outline { background:transparent; color:var(--gray); border:1px solid var(--border); }
+  .btn-outline:hover { background:var(--gray-light); color:var(--ink); }
+  .btn-sm { padding:0.45rem 1rem; font-size:0.8rem; }
+  .btn-xs { padding:0.3rem 0.7rem; font-size:0.75rem; }
+  .btn-danger { background:var(--red); color:white; border:none; padding:0.3rem 0.7rem; border-radius:6px; font-size:0.75rem; font-weight:500; cursor:pointer; font-family:inherit; }
+
+  .nav-menu-wrap { position:relative; }
+  .nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; }
+  .nav-dropdown.open { display:block; }
+  .nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; text-decoration:none; }
+  .nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
+  .nav-dropdown button.danger { color:var(--red); }
+  .dropdown-divider { height:1px; background:var(--border); }
+
+  .page-header { padding:40px 6% 32px; border-bottom:1px solid var(--border); }
+  .section-label { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--blue); margin-bottom:0.5rem; }
+  .page-header h1 { font-size:1.8rem; font-weight:700; letter-spacing:-0.02em; margin-bottom:0.3rem; }
+  .page-header p { font-size:0.9rem; color:var(--gray); font-weight:300; }
+
+  .main-wrap { padding:32px 6%; display:grid; grid-template-columns:1fr 320px; gap:2rem; align-items:start; }
+  @media(max-width:900px){ .main-wrap{grid-template-columns:1fr;} }
+
+  /* CALENDAR */
+  .cal-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .cal-nav { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:var(--gray-light); }
+  .cal-nav h2 { font-size:1rem; font-weight:700; color:var(--ink); }
+  .cal-nav-btn { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:0.85rem; cursor:pointer; font-family:inherit; color:var(--gray); transition:all 0.15s; }
+  .cal-nav-btn:hover { background:var(--white); color:var(--ink); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+  .cal-dow { padding:0.6rem 0; text-align:center; font-size:0.72rem; font-weight:600; color:var(--gray); letter-spacing:0.04em; border-bottom:1px solid var(--border); }
+  .cal-dow:first-child { color:#ef4444; }
+  .cal-dow:last-child { color:#3b82f6; }
+  .cal-cell { min-height:82px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px; cursor:pointer; transition:background 0.1s; position:relative; }
+  .cal-cell:nth-child(7n) { border-right:none; }
+  .cal-cell:hover { background:var(--blue-light); }
+  .cal-cell.other-month { background:var(--gray-light); }
+  .cal-cell.today .cal-date { background:var(--blue); color:white; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; }
+  .cal-cell.selected { background:var(--blue-light); }
+  .cal-date { font-size:0.8rem; font-weight:500; color:var(--ink); width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin-bottom:2px; }
+  .cal-cell.other-month .cal-date { color:var(--gray); opacity:0.5; }
+  .cal-cell:nth-child(7n+1) .cal-date { color:#ef4444; }
+  .cal-cell:nth-child(7n) .cal-date { color:#3b82f6; }
+  .cal-cell.today .cal-date { color:white !important; }
+  .event-dot { display:block; font-size:0.68rem; font-weight:500; padding:1px 5px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; line-height:1.6; }
+  .event-dot.cat-0 { background:#dbeafe; color:#1d4ed8; }
+  .event-dot.cat-1 { background:#fef3c7; color:#b45309; }
+  .event-dot.cat-2 { background:#dcfce7; color:#15803d; }
+  .event-dot.cat-3 { background:#f5f3ff; color:#7c3aed; }
+  .event-dot.cat-4 { background:#fce7f3; color:#be185d; }
+  .more-dot { font-size:0.65rem; color:var(--gray); padding:1px 4px; }
+
+  /* SIDEBAR */
+  .sidebar-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:1.25rem; }
+  .sidebar-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:var(--gray-light); display:flex; align-items:center; justify-content:space-between; }
+  .sidebar-header h3 { font-size:0.9rem; font-weight:700; color:var(--ink); }
+  .event-list { padding:0.75rem 1rem; max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem; }
+  .event-item { display:flex; gap:0.75rem; align-items:flex-start; padding:0.75rem; border:1px solid var(--border); border-radius:8px; transition:border-color 0.15s; }
+  .event-item:hover { border-color:var(--blue); }
+  .event-color { width:3px; border-radius:2px; flex-shrink:0; align-self:stretch; }
+  .event-info { flex:1; min-width:0; }
+  .event-title { font-size:0.85rem; font-weight:500; color:var(--ink); }
+  .event-date-label { font-size:0.75rem; color:var(--gray); margin-top:2px; }
+  .event-del { background:none; border:none; color:var(--gray); cursor:pointer; font-size:0.85rem; padding:2px 5px; border-radius:4px; transition:all 0.15s; flex-shrink:0; }
+  .event-del:hover { background:#fee2e2; color:var(--red); }
+  .no-events { padding:1.25rem; text-align:center; color:var(--gray); font-size:0.85rem; }
+
+  /* ADD EVENT FORM */
+  .add-event-card { border:1px solid var(--blue); border-radius:14px; overflow:hidden; background:var(--blue-light); display:none; margin-bottom:1.25rem; }
+  .add-event-card.visible { display:block; }
+  .add-event-header { padding:1rem 1.25rem; border-bottom:1px solid var(--blue-mid); display:flex; align-items:center; justify-content:space-between; }
+  .add-event-header h3 { font-size:0.9rem; font-weight:700; color:var(--blue); }
+  .add-event-body { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; }
+  .form-group label { display:block; font-size:0.78rem; font-weight:500; color:var(--gray); margin-bottom:0.3rem; }
+  .form-group input, .form-group select, .form-group textarea { width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border); border-radius:8px; font-size:0.875rem; font-family:inherit; outline:none; background:var(--white); transition:border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--blue); }
+
+  .cat-colors { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .cat-opt { padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:500; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+  .cat-opt.selected { border-color:var(--ink); }
+  .cat-opt-0 { background:#dbeafe; color:#1d4ed8; }
+  .cat-opt-1 { background:#fef3c7; color:#b45309; }
+  .cat-opt-2 { background:#dcfce7; color:#15803d; }
+  .cat-opt-3 { background:#f5f3ff; color:#7c3aed; }
+  .cat-opt-4 { background:#fce7f3; color:#be185d; }
+
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; align-items:center; justify-content:center; padding:1rem; }
+  .modal { background:var(--white); border-radius:16px; padding:2rem; width:100%; max-width:420px; position:relative; animation:modal-in 0.2s ease; max-height:90vh; overflow-y:auto; }
+  @keyframes modal-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .modal-close { position:absolute; top:1rem; right:1rem; background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--gray); }
+  .modal h3 { font-size:1.1rem; font-weight:700; margin-bottom:1.5rem; }
+  .form-error { font-size:0.78rem; color:var(--red); margin-top:0.4rem; }
+  .divider-text { display:flex; align-items:center; gap:0.75rem; font-size:0.75rem; color:var(--gray); margin:1rem 0; }
+  .divider-text::before,.divider-text::after { content:''; flex:1; height:1px; background:var(--border); }
+  .btn-google { width:100%; background:var(--white); color:var(--ink); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.6rem; border-radius:8px; font-size:0.875rem; font-weight:500; cursor:pointer; font-family:inherit; transition:background 0.15s; }
+  .btn-google:hover { background:var(--gray-light); }
+  .btn-google img { width:18px; height:18px; }
+  .modal-link { font-size:0.78rem; text-align:center; margin-top:1rem; color:var(--gray); }
+  .modal-link a { color:var(--blue); text-decoration:none; }
+
+  footer { padding:2rem 6%; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
+  footer p { font-size:0.8rem; color:var(--gray); }
+  .footer-links { display:flex; gap:1.5rem; }
+  .footer-links a { font-size:0.8rem; color:var(--gray); text-decoration:none; }
+
+  #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:0.5rem; z-index:9999; }
+  .toast { padding:0.75rem 1.25rem; border-radius:10px; font-size:0.85rem; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.15); animation:modal-in 0.25s ease; max-width:300px; }
+  .toast-success { background:var(--green); color:white; }
+  .toast-error   { background:var(--red);   color:white; }
+  .toast-info    { background:var(--blue);  color:white; }
+
+  @media(max-width:600px){ .nav-links{display:none} }
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">
+    <img src="logo.png" alt="ASTRO" class="nav-logo-icon"> ASTRO v53
+  </a>
+  <ul class="nav-links">
+    <li><a href="activity.html">활동내역</a></li>
+    <li><a href="index.html#notice">공지사항</a></li>
+    <li><a href="apply.html">가입 신청</a></li>
+    <li><a href="community.html">커뮤니티</a></li>
+    <li><a href="calendar.html" class="active">일정</a></li>
+    <li><a href="suggestion.html">건의함</a></li>
+  </ul>
+  <div class="nav-right">
+    <span id="user-info"></span>
+    <button id="login-btn" class="btn btn-outline btn-sm">로그인</button>
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="mypage.html">👤 마이페이지</a>
+        <div class="dropdown-divider"></div>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <p class="section-label">Calendar</p>
+  <h1>동아리 일정 📅</h1>
+  <p>ASTRO의 활동 일정을 확인하세요. 관리자와 운영담당자는 일정을 추가·삭제할 수 있습니다.</p>
+</div>
+
+<div class="main-wrap">
+  <div>
+    <div class="cal-card">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="prev-btn">‹ 이전</button>
+        <h2 id="cal-title"></h2>
+        <button class="cal-nav-btn" id="next-btn">다음 ›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+        <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div>
+        <div class="cal-dow">토</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="add-event-card" id="add-event-card">
+      <div class="add-event-header">
+        <h3>➕ 일정 추가</h3>
+        <button id="close-add-form" style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:1.1rem;">✕</button>
+      </div>
+      <div class="add-event-body">
+        <div class="form-group">
+          <label>제목 *</label>
+          <input type="text" id="ev-title" placeholder="일정 제목" maxlength="60">
+        </div>
+        <div class="form-group">
+          <label>날짜 *</label>
+          <input type="date" id="ev-date">
+        </div>
+        <div class="form-group">
+          <label>종료 날짜 (선택)</label>
+          <input type="date" id="ev-end-date">
+        </div>
+        <div class="form-group">
+          <label>카테고리</label>
+          <div class="cat-colors" id="cat-selector">
+            <span class="cat-opt cat-opt-0 selected" data-cat="0">일반</span>
+            <span class="cat-opt cat-opt-1" data-cat="1">시험/마감</span>
+            <span class="cat-opt cat-opt-2" data-cat="2">활동</span>
+            <span class="cat-opt cat-opt-3" data-cat="3">학술교류</span>
+            <span class="cat-opt cat-opt-4" data-cat="4">행사</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>메모 (선택)</label>
+          <textarea id="ev-note" rows="2" placeholder="간단한 메모" maxlength="200"></textarea>
+        </div>
+        <button class="btn btn-blue btn-sm" id="save-event-btn" style="width:100%">일정 저장</button>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-header">
+        <h3 id="selected-date-label">전체 일정</h3>
+        <button id="add-event-btn" class="btn btn-blue btn-xs" style="display:none">+ 추가</button>
+      </div>
+      <div class="event-list" id="event-list">
+        <div class="no-events">불러오는 중...</div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-header"><h3>범례</h3></div>
+      <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.5rem;">
+        <div class="event-dot cat-0" style="display:inline-block;width:fit-content;">일반</div>
+        <div class="event-dot cat-1" style="display:inline-block;width:fit-content;">시험/마감</div>
+        <div class="event-dot cat-2" style="display:inline-block;width:fit-content;">활동</div>
+        <div class="event-dot cat-3" style="display:inline-block;width:fit-content;">학술교류</div>
+        <div class="event-dot cat-4" style="display:inline-block;width:fit-content;">행사</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 ASTRO - Bugil Academy · 지도교사: 차미숙 선생님, 이현 선생님</p>
+  <div class="footer-links"><a href="#">인스타그램</a><a href="#">깃허브</a></div>
+</footer>
+
+<div id="toast-container"></div>
+
+<!-- Login Modal -->
+<div id="login-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <div id="login-tab">
+      <h3>🔐 로그인</h3>
+      <button id="google-login-btn" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Google로 로그인
+      </button>
+      <div class="divider-text">또는 이메일로 로그인</div>
+      <div class="form-group"><label>이메일</label><input type="email" id="login-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>비밀번호</label><input type="password" id="login-pw" placeholder="비밀번호"></div>
+      <p id="login-error" class="form-error"></p>
+      <button id="do-login-btn" class="btn btn-blue" style="width:100%;margin-top:0.5rem;">로그인</button>
+      <p class="modal-link">계정이 없으신가요? <a href="#" id="go-signup">회원가입</a></p>
+    </div>
+    <div id="signup-tab" style="display:none">
+      <h3>✏️ 회원가입</h3>
+      <div class="form-group"><label>이메일</label><input type="email" id="signup-email" placeholder="example@email.com"></div>
+      <div class="form-group"><label>비밀번호</label><input type="password" id="signup-pw" placeholder="6자 이상"></div>
+      <p id="signup-error" class="form-error"></p>
+      <button id="do-signup-btn" class="btn btn-blue" style="width:100%;margin-top:0.5rem;">가입하기</button>
+      <p class="modal-link">이미 계정이 있으신가요? <a href="#" id="go-login">로그인</a></p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, setDoc, query, orderBy, where, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0",
+  authDomain:"astro-bugil-a1dd7.firebaseapp.com",
+  projectId:"astro-bugil-a1dd7",
+  storageBucket:"astro-bugil-a1dd7.firebasestorage.app",
+  messagingSenderId:"751134919017",
+  appId:"1:751134919017:web:814be1b6b5cefb09c595f8"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const gp   = new GoogleAuthProvider();
+
+const OWNER_EMAILS = ['yunthomas0120@gmail.com','yunarchive0120@gmail.com'];
+function isOwner(u){ return !!u && OWNER_EMAILS.includes(u.email); }
+let _adminSet = null;
+async function fetchAdmins(){ try{ const s=await getDocs(collection(db,'admins')); _adminSet=new Set(s.docs.map(d=>d.id)); }catch{ _adminSet=new Set(); } }
+async function checkAdmin(u){ if(!u)return false; if(isOwner(u))return true; if(!_adminSet)await fetchAdmins(); return _adminSet.has(u.email); }
+
+function toast(msg,type='info'){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className=`toast toast-${type}`; el.textContent=msg; c.appendChild(el); setTimeout(()=>el.remove(),3200); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function openModal(id){ document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+function closeAllModals(){ document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none'); document.body.style.overflow=''; }
+function translateAuthError(code){ const m={'auth/user-not-found':'등록되지 않은 이메일입니다.','auth/wrong-password':'비밀번호가 틀렸습니다.','auth/invalid-email':'이메일 형식이 잘못되었습니다.','auth/email-already-in-use':'이미 사용 중인 이메일입니다.','auth/weak-password':'비밀번호는 6자 이상이어야 합니다.','auth/popup-closed-by-user':'로그인 창이 닫혔습니다.','auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.'}; return m[code]||code; }
+
+// Calendar state
+let curYear = new Date().getFullYear();
+let curMonth = new Date().getMonth();
+let allEvents = [];
+let selectedDate = null;
+let canEdit = false;
+
+const CAT_LABELS = ['일반','시험/마감','활동','학술교류','행사'];
+
+function toYMD(date){ return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}` }
+
+async function loadEvents(){
+  try{
+    const snap = await getDocs(query(collection(db,'events'), orderBy('date','asc')));
+    allEvents = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderCalendar();
+    renderEventList(selectedDate);
+  }catch(e){ console.error(e); }
+}
+
+function renderCalendar(){
+  const grid = document.getElementById('cal-grid');
+  // remove cells (keep 7 dow headers)
+  while(grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  document.getElementById('cal-title').textContent = `${curYear}년 ${curMonth+1}월`;
+
+  const first = new Date(curYear, curMonth, 1);
+  const last  = new Date(curYear, curMonth+1, 0);
+  const todayStr = toYMD(new Date());
+
+  // pad start
+  for(let i=0;i<first.getDay();i++){
+    const d = new Date(curYear, curMonth, -first.getDay()+1+i);
+    addCell(grid, d, true, todayStr);
+  }
+  for(let d=1;d<=last.getDate();d++){
+    addCell(grid, new Date(curYear,curMonth,d), false, todayStr);
+  }
+  // pad end
+  const remaining = 7 - (grid.children.length - 7) % 7;
+  if(remaining < 7){
+    for(let i=1;i<=remaining;i++){
+      addCell(grid, new Date(curYear,curMonth+1,i), true, todayStr);
+    }
+  }
+}
+
+function addCell(grid, date, otherMonth, todayStr){
+  const ymd = toYMD(date);
+  const cell = document.createElement('div');
+  cell.className = 'cal-cell' + (otherMonth?' other-month':'') + (ymd===todayStr?' today':'') + (ymd===selectedDate?' selected':'');
+  const dateEl = document.createElement('div');
+  dateEl.className = 'cal-date';
+  dateEl.textContent = date.getDate();
+  cell.appendChild(dateEl);
+
+  // events for this day (including multi-day spans)
+  const dayEvents = allEvents.filter(e=>{
+    if(e.endDate) return ymd >= e.date && ymd <= e.endDate;
+    return e.date === ymd;
+  });
+  dayEvents.slice(0,2).forEach(ev=>{
+    const dot = document.createElement('span');
+    dot.className = `event-dot cat-${ev.category??0}`;
+    dot.textContent = ev.title;
+    cell.appendChild(dot);
+  });
+  if(dayEvents.length>2){
+    const m = document.createElement('span');
+    m.className='more-dot';
+    m.textContent=`+${dayEvents.length-2}개 더`;
+    cell.appendChild(m);
+  }
+
+  cell.addEventListener('click',()=>{ selectedDate=ymd; renderCalendar(); renderEventList(ymd); });
+  grid.appendChild(cell);
+}
+
+function renderEventList(dateFilter){
+  const list = document.getElementById('event-list');
+  const label = document.getElementById('selected-date-label');
+  let events;
+  if(dateFilter){
+    label.textContent = `${dateFilter.replace(/-/g,'/')} 일정`;
+    events = allEvents.filter(e=>{ if(e.endDate) return dateFilter>=e.date&&dateFilter<=e.endDate; return e.date===dateFilter; });
+  } else {
+    label.textContent = '전체 일정';
+    events = allEvents;
+  }
+  list.innerHTML='';
+  if(events.length===0){ list.innerHTML='<div class="no-events">일정이 없습니다.</div>'; return; }
+  events.forEach(ev=>{
+    const item = document.createElement('div');
+    item.className='event-item';
+    const dateStr = ev.endDate && ev.endDate!==ev.date ? `${ev.date} ~ ${ev.endDate}` : ev.date;
+    item.innerHTML=`
+      <div class="event-color" style="background:${['#93c5fd','#fcd34d','#6ee7b7','#c4b5fd','#f9a8d4'][ev.category??0]}"></div>
+      <div class="event-info">
+        <div class="event-title">${esc(ev.title)}</div>
+        <div class="event-date-label">${dateStr}${ev.note?` · ${esc(ev.note)}`:''}</div>
+      </div>
+      ${canEdit?`<button class="event-del" data-id="${ev.id}" title="삭제">✕</button>`:''}`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.event-del').forEach(b=>b.addEventListener('click',()=>deleteEvent(b.dataset.id)));
+}
+
+async function deleteEvent(id){
+  if(!await checkAdmin(auth.currentUser)){ toast('관리자만 삭제할 수 있습니다.','error'); return; }
+  if(!confirm('이 일정을 삭제할까요?')) return;
+  await deleteDoc(doc(db,'events',id));
+  toast('일정이 삭제되었습니다.','info');
+  await loadEvents();
+}
+
+async function saveEvent(){
+  if(!await checkAdmin(auth.currentUser)){ toast('관리자만 추가할 수 있습니다.','error'); return; }
+  const title = document.getElementById('ev-title').value.trim();
+  const date  = document.getElementById('ev-date').value;
+  const endDate = document.getElementById('ev-end-date').value;
+  const note  = document.getElementById('ev-note').value.trim();
+  const cat   = parseInt(document.querySelector('.cat-opt.selected')?.dataset.cat??'0');
+  if(!title){ toast('제목을 입력하세요.','error'); return; }
+  if(!date){ toast('날짜를 선택하세요.','error'); return; }
+  if(endDate && endDate < date){ toast('종료 날짜는 시작 날짜 이후여야 합니다.','error'); return; }
+  await addDoc(collection(db,'events'),{ title, date, endDate:endDate||null, note, category:cat, createdBy:auth.currentUser.email, createdAt:serverTimestamp() });
+  toast('일정이 추가되었습니다.','success');
+  document.getElementById('ev-title').value='';
+  document.getElementById('ev-date').value='';
+  document.getElementById('ev-end-date').value='';
+  document.getElementById('ev-note').value='';
+  document.getElementById('add-event-card').classList.remove('visible');
+  await loadEvents();
+}
+
+// Auth
+onAuthStateChanged(auth, async user=>{
+  const loginBtn=document.getElementById('login-btn');
+  const menuWrap=document.getElementById('user-menu-wrap');
+  const userInfo=document.getElementById('user-info');
+  if(user){
+    loginBtn.style.display='none'; menuWrap.style.display='flex';
+    const admin=await checkAdmin(user);
+    canEdit=admin;
+    const name=user.displayName||user.email;
+    userInfo.textContent=isOwner(user)?`👑 ${name}`:admin?`💻 ${name}`:name;
+    userInfo.style.display='inline';
+    document.getElementById('add-event-btn').style.display=admin?'inline-block':'none';
+  } else {
+    loginBtn.style.display='inline-block'; menuWrap.style.display='none';
+    userInfo.style.display='none'; canEdit=false;
+    document.getElementById('add-event-btn').style.display='none';
+  }
+  renderEventList(selectedDate);
+});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  loadEvents();
+
+  document.getElementById('prev-btn').addEventListener('click',()=>{ curMonth--; if(curMonth<0){curMonth=11;curYear--;} renderCalendar(); });
+  document.getElementById('next-btn').addEventListener('click',()=>{ curMonth++; if(curMonth>11){curMonth=0;curYear++;} renderCalendar(); });
+
+  document.getElementById('add-event-btn').addEventListener('click',()=>{
+    const card=document.getElementById('add-event-card');
+    card.classList.toggle('visible');
+    if(selectedDate) document.getElementById('ev-date').value=selectedDate;
+  });
+  document.getElementById('close-add-form').addEventListener('click',()=>document.getElementById('add-event-card').classList.remove('visible'));
+  document.getElementById('save-event-btn').addEventListener('click', saveEvent);
+
+  document.querySelectorAll('.cat-opt').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.cat-opt').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+  }));
+
+  // Nav
+  const menuBtn=document.getElementById('user-menu-btn');
+  const dropdown=document.getElementById('user-dropdown');
+  menuBtn.addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open');});
+  document.addEventListener('click',()=>dropdown.classList.remove('open'));
+  document.getElementById('login-btn').addEventListener('click',()=>openModal('login-modal'));
+  document.getElementById('logout-btn').addEventListener('click',async()=>{ await signOut(auth); toast('로그아웃되었습니다.','info'); });
+
+  document.querySelectorAll('.modal-close').forEach(b=>b.addEventListener('click',closeAllModals));
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)closeAllModals(); }));
+
+  document.getElementById('do-login-btn').addEventListener('click',async()=>{
+    try{ await signInWithEmailAndPassword(auth,document.getElementById('login-email').value,document.getElementById('login-pw').value); closeAllModals(); toast('로그인되었습니다.','success'); }
+    catch(ex){ document.getElementById('login-error').textContent=translateAuthError(ex.code); }
+  });
+  document.getElementById('google-login-btn').addEventListener('click',async()=>{
+    try{ await signInWithPopup(auth,gp); closeAllModals(); toast('Google 로그인 성공','success'); }
+    catch(ex){ document.getElementById('login-error').textContent=translateAuthError(ex.code); }
+  });
+  document.getElementById('go-signup').addEventListener('click',e=>{ e.preventDefault(); document.getElementById('login-tab').style.display='none'; document.getElementById('signup-tab').style.display='block'; });
+  document.getElementById('go-login').addEventListener('click',e=>{ e.preventDefault(); document.getElementById('signup-tab').style.display='none'; document.getElementById('login-tab').style.display='block'; });
+  document.getElementById('do-signup-btn').addEventListener('click',async()=>{
+    try{ await createUserWithEmailAndPassword(auth,document.getElementById('signup-email').value,document.getElementById('signup-pw').value); closeAllModals(); toast('가입이 완료되었습니다.','success'); }
+    catch(ex){ document.getElementById('signup-error').textContent=translateAuthError(ex.code); }
+  });
+});
+</script>
+</body>
+</html>
