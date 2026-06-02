@@ -37,7 +37,7 @@
   nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--white); z-index:10; }
   .logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
   .nav-logo-icon { width:40px; height:40px; object-fit:contain; }
-  .nav-links { display:flex; gap:2rem; list-style:none; }
+  .nav-links { display:flex; gap:1.5rem; list-style:none; }
   .nav-links a { font-size:0.875rem; color:var(--gray); text-decoration:none; transition:color 0.2s; }
   .nav-links a:hover { color:var(--ink); }
   .nav-right { display:flex; align-items:center; gap:0.75rem; }
@@ -173,8 +173,8 @@
   .nav-menu-wrap { position:relative; }
   .nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; animation:modal-in 0.15s ease; }
   .nav-dropdown.open { display:block; }
-  .nav-dropdown button { width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; }
-  .nav-dropdown button:hover { background:var(--gray-light); }
+  .nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; text-decoration:none; }
+  .nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
   .nav-dropdown button.danger { color:var(--red); }
   .dropdown-divider { height:1px; background:var(--border); }
 
@@ -189,6 +189,13 @@
   .input-row { display:flex; gap:0.5rem; }
   .input-row input { flex:1; padding:0.55rem 0.85rem; border:1px solid var(--border); border-radius:8px; font-size:0.875rem; font-family:inherit; outline:none; }
   .input-row input:focus { border-color:var(--blue); }
+
+  /* DANGER ZONE */
+  .danger-zone { margin-top:1.5rem; padding:1.25rem; background:var(--red-light); border:1px solid #fecaca; border-radius:10px; }
+  .danger-zone-title { font-size:0.78rem; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.5rem; }
+  .danger-zone p { font-size:0.82rem; color:#991b1b; margin-bottom:0.85rem; }
+  .btn-danger-solid { background:var(--red); color:white; border:none; padding:0.45rem 1rem; border-radius:8px; font-size:0.8rem; font-weight:600; cursor:pointer; font-family:inherit; transition:opacity 0.2s; }
+  .btn-danger-solid:hover { opacity:0.85; }
 
   @media(max-width:700px){
     .hero{flex-direction:column-reverse;align-items:flex-start;padding-top:48px}
@@ -219,10 +226,12 @@
     ASTRO v52
   </a>
   <ul class="nav-links">
-    <li><a href="#activities">활동보기</a></li>
+    <li><a href="activity.html">활동내역</a></li>
     <li><a href="#notice">공지사항</a></li>
     <li><a href="apply.html">가입 신청</a></li>
     <li><a href="community.html">커뮤니티</a></li>
+    <li><a href="calendar.html">일정</a></li>
+    <li><a href="suggestion.html">건의함</a></li>
   </ul>
   <div class="nav-right">
     <span id="user-info"></span>
@@ -230,6 +239,7 @@
     <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
       <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
       <div class="nav-dropdown" id="user-dropdown">
+        <a href="mypage.html">👤 마이페이지</a>
         <button id="open-console-btn" style="display:none">🖥️ 운영자 콘솔</button>
         <div class="dropdown-divider" id="console-divider" style="display:none"></div>
         <button id="logout-btn" class="danger">로그아웃</button>
@@ -244,7 +254,7 @@
     <h1>Bugil Academy<br>ASTRO 🚀</h1>
     <p>20년 역사의 북일고등학교 최고의 공학 동아리입니다. 공학도를 꿈꾸는 열정적인 학생들이 모여 미래를 준비하는 배움의 공동체입니다.</p>
     <div class="hero-btns">
-      <a href="#activities" class="btn btn-blue">활동 보기</a>
+      <a href="activity.html" class="btn btn-blue">활동 보기</a>
       <a href="apply.html" class="btn btn-outline">가입 신청 →</a>
     </div>
   </div>
@@ -347,6 +357,7 @@
       <button class="console-tab" data-tab="questions">❓ 지원 질문</button>
       <button class="console-tab" data-tab="applications">📋 가입 신청</button>
       <button class="console-tab" data-tab="notices">📝 공지</button>
+      <button class="console-tab" data-tab="danger">🚨 초기화</button>
     </div>
     <div class="console-body">
 
@@ -439,6 +450,43 @@
           <button class="btn btn-blue btn-sm" id="console-add-notice-btn">등록</button>
         </div>
         <div id="console-notice-list" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+      </div>
+
+      <div class="console-panel" id="panel-danger">
+        <p class="console-section-title">⚠️ 위험 구역 — 데이터 초기화</p>
+        <p style="font-size:0.82rem;color:var(--gray);margin-bottom:1rem;">아래 작업은 <strong>되돌릴 수 없습니다.</strong> 신중하게 사용하세요. 운영담당자 전용입니다.</p>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 공지사항 전체 삭제</div>
+            <p>등록된 모든 공지사항을 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-notices-btn">공지사항 초기화</button>
+          </div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 가입 신청 전체 삭제</div>
+            <p>모든 가입 신청 데이터를 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-applications-btn">가입 신청 초기화</button>
+          </div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 커뮤니티 전체 삭제</div>
+            <p>모든 커뮤니티 게시글과 댓글을 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-community-btn">커뮤니티 초기화</button>
+          </div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 활동내역 전체 삭제</div>
+            <p>모든 활동내역 게시글과 댓글을 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-activities-btn">활동내역 초기화</button>
+          </div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ 건의함 전체 삭제</div>
+            <p>모든 익명 건의 데이터를 삭제합니다.</p>
+            <button class="btn-danger-solid" id="reset-suggestions-btn">건의함 초기화</button>
+          </div>
+          <div class="danger-zone" style="border-color:#dc2626;background:#fff1f1;">
+            <div class="danger-zone-title" style="font-size:0.85rem;">☢️ 웹사이트 전체 데이터 초기화</div>
+            <p style="font-weight:500;">위의 모든 데이터(공지, 신청, 커뮤니티, 활동내역, 건의함)를 한 번에 초기화합니다. 절대 되돌릴 수 없습니다.</p>
+            <button class="btn-danger-solid" id="reset-all-btn" style="background:#7f1d1d;font-size:0.85rem;padding:0.5rem 1.25rem;">⚠️ 전체 초기화 실행</button>
+          </div>
+        </div>
       </div>
 
     </div>
