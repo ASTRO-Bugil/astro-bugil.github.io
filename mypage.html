@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이페이지 — ASTRO Bugil Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#3b82f6; --blue-light:#eff6ff; --blue-mid:#dbeafe;
+    --ink:#1e293b; --gray:#64748b; --gray-light:#f1f5f9;
+    --border:#e2e8f0; --white:#ffffff; --red:#dc2626;
+    --red-light:#fef2f2; --green:#10b981; --green-light:#ecfdf5;
+    --orange:#f59e0b; --orange-light:#fffbeb;
+    --purple:#8b5cf6; --purple-light:#f5f3ff;
+  }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--gray-light); color:var(--ink); font-size:15px; line-height:1.7; }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:0 6%; height:60px; border-bottom:1px solid var(--border); background:var(--white); position:sticky; top:0; z-index:10; }
+  .logo { font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+  .nav-logo-icon { width:36px; height:36px; object-fit:contain; }
+  .nav-links { display:flex; gap:1.5rem; list-style:none; }
+  .nav-links a { font-size:0.875rem; color:var(--gray); text-decoration:none; transition:color 0.2s; }
+  .nav-links a:hover { color:var(--ink); }
+  .nav-right { display:flex; align-items:center; gap:0.75rem; }
+  .btn { display:inline-block; padding:0.6rem 1.4rem; border-radius:8px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.2s; border:none; font-family:inherit; }
+  .btn-blue { background:var(--blue); color:var(--white); }
+  .btn-blue:hover { background:#2563eb; }
+  .btn-blue:disabled { opacity:0.6; cursor:not-allowed; }
+  .btn-outline { background:transparent; color:var(--gray); border:1px solid var(--border); }
+  .btn-outline:hover { background:var(--gray-light); color:var(--ink); }
+  .btn-sm { padding:0.45rem 1rem; font-size:0.8rem; }
+  .btn-xs { padding:0.3rem 0.7rem; font-size:0.75rem; }
+  .nav-menu-wrap { position:relative; }
+  .nav-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--white); border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-width:160px; overflow:hidden; display:none; z-index:200; }
+  .nav-dropdown.open { display:block; }
+  .nav-dropdown button, .nav-dropdown a { display:block; width:100%; text-align:left; padding:0.6rem 1rem; background:none; border:none; cursor:pointer; font-size:0.85rem; font-family:inherit; color:var(--ink); transition:background 0.15s; text-decoration:none; }
+  .nav-dropdown button:hover, .nav-dropdown a:hover { background:var(--gray-light); }
+  .nav-dropdown button.danger { color:var(--red); }
+  .dropdown-divider { height:1px; background:var(--border); }
+
+  .gate { display:flex; align-items:center; justify-content:center; min-height:70vh; }
+  .gate-card { background:var(--white); border:1px solid var(--border); border-radius:16px; padding:3rem; text-align:center; max-width:380px; width:100%; }
+  .gate-card .icon { font-size:2.5rem; margin-bottom:0.75rem; }
+  .gate-card h2 { font-size:1.1rem; font-weight:700; margin-bottom:0.5rem; }
+  .gate-card p { font-size:0.875rem; color:var(--gray); margin-bottom:1.5rem; }
+
+  .main-wrap { max-width:860px; margin:0 auto; padding:36px 6% 60px; display:grid; grid-template-columns:260px 1fr; gap:1.75rem; align-items:start; }
+  @media(max-width:700px){ .main-wrap{grid-template-columns:1fr;} }
+
+  /* PROFILE CARD */
+  .profile-card { background:var(--white); border:1px solid var(--border); border-radius:14px; padding:1.75rem; }
+  .profile-avatar { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#8b5cf6); color:white; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:700; margin:0 auto 1rem; }
+  .profile-name { text-align:center; font-size:1rem; font-weight:700; color:var(--ink); margin-bottom:0.2rem; }
+  .profile-email { text-align:center; font-size:0.78rem; color:var(--gray); margin-bottom:1rem; }
+  .profile-role { display:flex; justify-content:center; margin-bottom:1.5rem; }
+  .role-badge { font-size:0.7rem; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .role-badge.owner { background:var(--purple-light); color:var(--purple); }
+  .role-badge.admin  { background:var(--blue-mid); color:var(--blue); }
+  .role-badge.member { background:var(--gray-light); color:var(--gray); }
+  .profile-divider { border:none; border-top:1px solid var(--border); margin:1rem 0; }
+  .profile-menu { list-style:none; }
+  .profile-menu li { margin-bottom:0.2rem; }
+  .profile-menu button { width:100%; text-align:left; padding:0.6rem 0.75rem; background:none; border:none; border-radius:8px; font-size:0.875rem; font-family:inherit; color:var(--gray); cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:0.5rem; }
+  .profile-menu button:hover { background:var(--gray-light); color:var(--ink); }
+  .profile-menu button.active { background:var(--blue-light); color:var(--blue); font-weight:500; }
+
+  /* CONTENT PANELS */
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .section-card { background:var(--white); border:1px solid var(--border); border-radius:14px; margin-bottom:1.25rem; overflow:hidden; }
+  .section-card-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:var(--gray-light); display:flex; align-items:center; justify-content:space-between; }
+  .section-card-header h3 { font-size:0.92rem; font-weight:700; color:var(--ink); }
+  .section-card-body { padding:1.25rem; }
+
+  .form-group { margin-bottom:1rem; }
+  .form-group label { display:block; font-size:0.8rem; font-weight:500; color:var(--gray); margin-bottom:0.35rem; }
+  .form-group input, .form-group textarea, .form-group select { width:100%; padding:0.6rem 0.85rem; border:1px solid var(--border); border-radius:8px; font-size:0.875rem; font-family:inherit; color:var(--ink); outline:none; transition:border-color 0.2s; background:var(--white); resize:vertical; }
+  .form-group input:focus, .form-group textarea:focus { border-color:var(--blue); }
+  .form-group input:read-only { background:var(--gray-light); color:var(--gray); cursor:default; }
+  .form-error { font-size:0.78rem; color:var(--red); margin-top:0.4rem; }
+  .form-success { font-size:0.78rem; color:var(--green); margin-top:0.4rem; }
+
+  /* APPLICATION CARD */
+  .app-status-badge { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; font-weight:600; padding:4px 12px; border-radius:20px; }
+  .app-status-badge.pending  { background:var(--orange-light); color:var(--orange); }
+  .app-status-badge.accepted { background:var(--green-light); color:var(--green); }
+  .app-status-badge.rejected { background:var(--red-light); color:var(--red); }
+  .info-row { display:flex; gap:0.5rem; align-items:flex-start; margin-bottom:0.6rem; font-size:0.875rem; }
+  .info-label { font-weight:500; color:var(--gray); flex-shrink:0; min-width:72px; font-size:0.82rem; }
+  .info-value { color:var(--ink); }
+  .app-actions { display:flex; gap:0.5rem; margin-top:1.25rem; flex-wrap:wrap; }
+  .btn-danger-outline { background:none; border:1px solid var(--red); color:var(--red); padding:0.45rem 1rem; border-radius:8px; font-size:0.8rem; font-weight:500; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+  .btn-danger-outline:hover { background:var(--red); color:white; }
+
+  /* SUGGESTION CARDS */
+  .sg-item { border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:0.75rem; }
+  .sg-item-header { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+  .sg-cat-badge { font-size:0.7rem; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-mid); color:var(--blue); }
+  .sg-item-title { font-size:0.875rem; font-weight:600; flex:1; }
+  .sg-item-date { font-size:0.75rem; color:var(--gray); }
+  .sg-item-content { font-size:0.825rem; color:var(--gray); margin-top:0.25rem; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sg-del-btn { background:none; border:none; color:var(--gray); cursor:pointer; font-size:0.8rem; padding:2px 6px; border-radius:4px; transition:all 0.15s; }
+  .sg-del-btn:hover { background:var(--red-light); color:var(--red); }
+  .empty-note { color:var(--gray); font-size:0.875rem; text-align:center; padding:1.5rem; }
+
+  /* EDIT MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; align-items:center; justify-content:center; padding:1rem; }
+  .modal { background:var(--white); border-radius:16px; padding:2rem; width:100%; max-width:520px; position:relative; animation:modal-in 0.2s ease; max-height:90vh; overflow-y:auto; }
+  @keyframes modal-in { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .modal-close { position:absolute; top:1rem; right:1rem; background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--gray); }
+  .modal h3 { font-size:1.1rem; font-weight:700; margin-bottom:1.5rem; }
+
+  #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; display:flex; flex-direction:column; gap:0.5rem; z-index:9999; }
+  .toast { padding:0.75rem 1.25rem; border-radius:10px; font-size:0.85rem; font-weight:500; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:300px; animation:modal-in 0.2s ease; }
+  .toast-success { background:var(--green); color:white; }
+  .toast-error   { background:var(--red);   color:white; }
+  .toast-info    { background:var(--blue);  color:white; }
+
+  @media(max-width:600px){ .nav-links{display:none} }
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">
+    <img src="logo.png" alt="ASTRO" class="nav-logo-icon"> ASTRO v53
+  </a>
+  <ul class="nav-links">
+    <li><a href="activity.html">활동내역</a></li>
+    <li><a href="index.html#notice">공지사항</a></li>
+    <li><a href="apply.html">가입 신청</a></li>
+    <li><a href="community.html">커뮤니티</a></li>
+    <li><a href="calendar.html">일정</a></li>
+    <li><a href="suggestion.html">건의함</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-menu-wrap" id="user-menu-wrap" style="display:none">
+      <button id="user-menu-btn" class="btn btn-outline btn-sm">메뉴 ▾</button>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="index.html">🏠 홈</a>
+        <div class="dropdown-divider"></div>
+        <button id="logout-btn" class="danger">로그아웃</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div id="gate-section" class="gate">
+  <div class="gate-card">
+    <div class="icon">🔒</div>
+    <h2>로그인이 필요합니다</h2>
+    <p>마이페이지는 로그인 후 이용할 수 있습니다.</p>
+    <a href="index.html" class="btn btn-blue btn-sm">홈으로 이동</a>
+  </div>
+</div>
+
+<div id="mypage-section" style="display:none">
+  <div class="main-wrap">
+    <!-- PROFILE SIDEBAR -->
+    <div>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-email" id="profile-email">—</div>
+        <div class="profile-role"><span class="role-badge member" id="profile-role-badge">회원</span></div>
+        <hr class="profile-divider">
+        <ul class="profile-menu">
+          <li><button class="active" data-panel="profile">👤 프로필 설정</button></li>
+          <li><button data-panel="application">📋 가입 신청</button></li>
+          <li><button data-panel="suggestions">📬 내 건의글</button></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT PANELS -->
+    <div>
+      <!-- PROFILE PANEL -->
+      <div class="panel active" id="panel-profile">
+        <div class="section-card">
+          <div class="section-card-header"><h3>👤 프로필 설정</h3></div>
+          <div class="section-card-body">
+            <div class="form-group">
+              <label>이메일 (변경 불가)</label>
+              <input type="text" id="profile-email-input" readonly>
+            </div>
+            <div class="form-group">
+              <label>닉네임 (표시 이름)</label>
+              <input type="text" id="nickname-input" placeholder="닉네임을 입력하세요" maxlength="20">
+            </div>
+            <p id="nickname-error" class="form-error"></p>
+            <p id="nickname-success" class="form-success"></p>
+            <button class="btn btn-blue btn-sm" id="save-nickname-btn">닉네임 저장</button>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-header"><h3>🔑 비밀번호 변경</h3></div>
+          <div class="section-card-body">
+            <div class="form-group">
+              <label>새 비밀번호 (6자 이상)</label>
+              <input type="password" id="new-pw-input" placeholder="새 비밀번호">
+            </div>
+            <div class="form-group">
+              <label>새 비밀번호 확인</label>
+              <input type="password" id="new-pw-confirm" placeholder="비밀번호 재입력">
+            </div>
+            <p id="pw-error" class="form-error"></p>
+            <p id="pw-success" class="form-success"></p>
+            <button class="btn btn-blue btn-sm" id="save-pw-btn">비밀번호 변경</button>
+            <p style="font-size:0.75rem;color:var(--gray);margin-top:0.5rem;">Google 소셜 로그인 계정은 비밀번호 변경이 지원되지 않습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPLICATION PANEL -->
+      <div class="panel" id="panel-application">
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3>📋 가입 신청 현황</h3>
+            <span id="app-status-badge-header"></span>
+          </div>
+          <div class="section-card-body" id="app-body">
+            <div class="empty-note">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUGGESTIONS PANEL -->
+      <div class="panel" id="panel-suggestions">
+        <div class="section-card">
+          <div class="section-card-header"><h3>📬 내가 제출한 건의글</h3></div>
+          <div class="section-card-body" id="suggestions-body">
+            <div class="empty-note">불러오는 중...</div>
+          </div>
+        </div>
+        <div style="background:var(--gray-light);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem;font-size:0.8rem;color:var(--gray);">
+          💡 건의글은 이 기기의 브라우저에서 제출한 것만 표시됩니다. 비밀번호를 설정한 건의글은 비밀번호 입력 후 삭제할 수 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Application Modal -->
+<div id="edit-app-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <h3>✏️ 가입 신청 수정</h3>
+    <div class="form-group"><label>이름 *</label><input type="text" id="edit-app-name" maxlength="20"></div>
+    <div class="form-group"><label>학년 *</label>
+      <select id="edit-app-grade">
+        <option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+      </select>
+    </div>
+    <div class="form-group"><label>반 *</label><input type="text" id="edit-app-class" maxlength="10"></div>
+    <div class="form-group"><label id="edit-q1-label">질문 1</label><textarea id="edit-app-q1" rows="3" maxlength="500"></textarea></div>
+    <div class="form-group"><label id="edit-q2-label">질문 2</label><textarea id="edit-app-q2" rows="3" maxlength="500"></textarea></div>
+    <p id="edit-app-error" class="form-error"></p>
+    <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+      <button class="btn btn-blue" id="save-app-edit-btn" style="flex:1">수정 저장</button>
+      <button class="btn btn-outline" id="cancel-app-edit-btn">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Suggestion Password Modal -->
+<div id="sg-pw-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <h3>🔒 건의글 삭제 확인</h3>
+    <p style="font-size:0.875rem;color:var(--gray);margin-bottom:1.25rem;">이 건의글은 비밀번호로 보호되어 있습니다. 비밀번호를 입력해주세요.</p>
+    <div class="form-group"><input type="password" id="sg-del-pw-input" placeholder="비밀번호 입력"></div>
+    <p id="sg-pw-error" class="form-error"></p>
+    <button class="btn btn-blue btn-sm" id="sg-pw-confirm-btn" style="width:100%">삭제 확인</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged, updatePassword, updateProfile, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey:"AIzaSyCtV0rzA4ZbBt9xv8Yogw6Y9dgA2-hydU0", authDomain:"astro-bugil-a1dd7.firebaseapp.com", projectId:"astro-bugil-a1dd7", storageBucket:"astro-bugil-a1dd7.firebasestorage.app", messagingSenderId:"751134919017", appId:"1:751134919017:web:814be1b6b5cefb09c595f8" };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const OWNER_EMAILS = ['yunthomas0120@gmail.com','yunarchive0120@gmail.com'];
+
+let _adminSet = null;
+async function fetchAdmins(){ try{ const s=await getDocs(collection(db,'admins')); _adminSet=new Set(s.docs.map(d=>d.id)); }catch{ _adminSet=new Set(); } }
+async function checkAdmin(u){ if(!u)return false; if(OWNER_EMAILS.includes(u.email))return true; if(!_adminSet)await fetchAdmins(); return _adminSet.has(u.email); }
+
+function toast(msg,type='info'){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className=`toast toast-${type}`; el.textContent=msg; c.appendChild(el); setTimeout(()=>el.remove(),3200); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(ts){ return ts?new Date(ts.toMillis()).toLocaleDateString('ko-KR'):''; }
+function openModal(id){ document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+function closeAllModals(){ document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none'); document.body.style.overflow=''; }
+
+let currentUser = null;
+let myApplication = null;
+let editingAppId = null;
+let deleteSgId = null;
+let deleteSgHash = null;
+
+async function initProfile(user){
+  document.getElementById('profile-email-input').value = user.email||'';
+  document.getElementById('nickname-input').value = user.displayName||'';
+  document.getElementById('profile-email').textContent = user.email||'';
+  document.getElementById('profile-name').textContent = user.displayName||user.email||'';
+  document.getElementById('profile-avatar').textContent = (user.displayName||user.email||'?')[0].toUpperCase();
+
+  const admin = await checkAdmin(user);
+  const badge = document.getElementById('profile-role-badge');
+  if(OWNER_EMAILS.includes(user.email)){ badge.className='role-badge owner'; badge.textContent='운영담당자'; }
+  else if(admin){ badge.className='role-badge admin'; badge.textContent='관리자'; }
+  else { badge.className='role-badge member'; badge.textContent='일반 회원'; }
+}
+
+async function loadApplication(user){
+  const body = document.getElementById('app-body');
+  body.innerHTML='<div class="empty-note">불러오는 중...</div>';
+  try{
+    const q = query(collection(db,'applications'), where('email','==',user.email));
+    const snap = await getDocs(q);
+    if(snap.empty){
+      body.innerHTML=`<div class="empty-note">가입 신청 내역이 없습니다.<br><a href="apply.html" style="color:var(--blue);text-decoration:none;">가입 신청하기 →</a></div>`;
+      return;
+    }
+    // Take most recent
+    const docs = snap.docs.sort((a,b)=>(b.data().createdAt?.toMillis()||0)-(a.data().createdAt?.toMillis()||0));
+    const d = docs[0]; myApplication = {id:d.id,...d.data()}; editingAppId=d.id;
+    const st = myApplication.status||'pending';
+    const statusMap = { pending:{label:'검토 중',cls:'pending'}, accepted:{label:'합격',cls:'accepted'}, rejected:{label:'불합격',cls:'rejected'} };
+    const si = statusMap[st]||statusMap.pending;
+    document.getElementById('app-status-badge-header').innerHTML=`<span class="app-status-badge ${si.cls}">${si.label}</span>`;
+    body.innerHTML=`
+      <div class="info-row"><span class="info-label">이름</span><span class="info-value">${esc(myApplication.name||'')}</span></div>
+      <div class="info-row"><span class="info-label">학년/반</span><span class="info-value">${esc(myApplication.grade||'')}학년 ${esc(myApplication.class||'')}반</span></div>
+      <div class="info-row"><span class="info-label">이메일</span><span class="info-value">${esc(myApplication.email||'')}</span></div>
+      <div class="info-row"><span class="info-label">신청일</span><span class="info-value">${fmtDate(myApplication.createdAt)}</span></div>
+      <div class="info-row"><span class="info-label">상태</span><span class="info-value"><span class="app-status-badge ${si.cls}">${si.label}</span></span></div>
+      ${myApplication.q1?`<div class="info-row" style="flex-direction:column;gap:0.25rem;"><span class="info-label">Q1</span><span class="info-value" style="background:var(--gray-light);padding:0.6rem 0.85rem;border-radius:8px;font-size:0.85rem;">${esc(myApplication.q1)}</span></div>`:''}
+      ${myApplication.q2?`<div class="info-row" style="flex-direction:column;gap:0.25rem;"><span class="info-label">Q2</span><span class="info-value" style="background:var(--gray-light);padding:0.6rem 0.85rem;border-radius:8px;font-size:0.85rem;">${esc(myApplication.q2)}</span></div>`:''}
+      ${myApplication.adminNote?`<div class="info-row" style="flex-direction:column;gap:0.25rem;"><span class="info-label" style="color:var(--blue);">관리자 메모</span><span class="info-value" style="background:var(--blue-light);padding:0.6rem 0.85rem;border-radius:8px;font-size:0.85rem;">${esc(myApplication.adminNote)}</span></div>`:''}
+      <div class="app-actions">
+        ${st==='pending'?`<button class="btn btn-outline btn-sm" id="edit-app-btn">✏️ 수정하기</button>`:''}
+        <button class="btn-danger-outline" id="cancel-app-btn">가입 신청 취소</button>
+      </div>`;
+    if(st==='pending') document.getElementById('edit-app-btn')?.addEventListener('click',openEditAppModal);
+    document.getElementById('cancel-app-btn')?.addEventListener('click', cancelApplication);
+  } catch(e){ body.innerHTML=`<div class="empty-note" style="color:var(--red);">오류: ${esc(e.message)}</div>`; }
+}
+
+async function openEditAppModal(){
+  if(!myApplication) return;
+  // Load questions
+  try{
+    const snap = await getDoc(doc(db,'config','apply_questions'));
+    if(snap.exists()){ document.getElementById('edit-q1-label').textContent=snap.data().q1||'질문 1'; document.getElementById('edit-q2-label').textContent=snap.data().q2||'질문 2'; }
+  }catch{}
+  document.getElementById('edit-app-name').value=myApplication.name||'';
+  document.getElementById('edit-app-grade').value=myApplication.grade||'1';
+  document.getElementById('edit-app-class').value=myApplication.class||'';
+  document.getElementById('edit-app-q1').value=myApplication.q1||'';
+  document.getElementById('edit-app-q2').value=myApplication.q2||'';
+  openModal('edit-app-modal');
+}
+
+async function cancelApplication(){
+  if(!editingAppId) return;
+  if(!confirm('가입 신청을 취소할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+  try{
+    await deleteDoc(doc(db,'applications',editingAppId));
+    myApplication=null; editingAppId=null;
+    toast('가입 신청이 취소되었습니다.','info');
+    await loadApplication(currentUser);
+  }catch(e){ toast('취소 실패: '+e.message,'error'); }
+}
+
+async function loadSuggestions(){
+  const body = document.getElementById('suggestions-body');
+  const tokens = JSON.parse(localStorage.getItem('sg_tokens')||'[]');
+  if(tokens.length===0){ body.innerHTML='<div class="empty-note">이 기기에서 제출한 건의글이 없습니다.</div>'; return; }
+  body.innerHTML='<div class="empty-note">불러오는 중...</div>';
+  try{
+    const snap = await getDocs(query(collection(db,'suggestions'), orderBy('createdAt','desc')));
+    const mine = snap.docs.filter(d=>tokens.includes(d.data().anonToken)).map(d=>({id:d.id,...d.data()}));
+    if(mine.length===0){ body.innerHTML='<div class="empty-note">제출한 건의글이 없습니다.</div>'; return; }
+    body.innerHTML='';
+    mine.forEach(sg=>{
+      const item=document.createElement('div');
+      item.className='sg-item';
+      item.innerHTML=`
+        <div class="sg-item-header">
+          <span class="sg-cat-badge">${esc(sg.category||'일반')}</span>
+          <span class="sg-item-title">${esc(sg.title)}</span>
+          <span class="sg-item-date">${fmtDate(sg.createdAt)}</span>
+          <button class="sg-del-btn" data-id="${sg.id}" data-hash="${sg.passwordHash||''}" data-haspw="${sg.hasPassword?'1':'0'}">✕</button>
+        </div>
+        <div class="sg-item-content">${esc(sg.content)}</div>`;
+      item.querySelector('.sg-del-btn').addEventListener('click',e=>openDeleteSgFlow(e.target.dataset.id,e.target.dataset.haspw==='1',e.target.dataset.hash));
+      body.appendChild(item);
+    });
+  }catch(e){ body.innerHTML=`<div class="empty-note" style="color:var(--red);">오류: ${esc(e.message)}</div>`; }
+}
+
+function openDeleteSgFlow(id, hasPw, hash){
+  deleteSgId=id; deleteSgHash=hash;
+  if(hasPw){ document.getElementById('sg-del-pw-input').value=''; document.getElementById('sg-pw-error').textContent=''; openModal('sg-pw-modal'); }
+  else{ if(confirm('이 건의글을 삭제할까요?')) deleteSuggestion(id); }
+}
+
+async function deleteSuggestion(id){
+  try{
+    await deleteDoc(doc(db,'suggestions',id));
+    const tokens=JSON.parse(localStorage.getItem('sg_tokens')||'[]');
+    // We can't easily remove by token here, just reload
+    toast('건의글이 삭제되었습니다.','info');
+    closeAllModals();
+    await loadSuggestions();
+  }catch(e){ toast('삭제 실패: '+e.message,'error'); }
+}
+
+onAuthStateChanged(auth, async user=>{
+  const gate=document.getElementById('gate-section');
+  const mypage=document.getElementById('mypage-section');
+  const menuWrap=document.getElementById('user-menu-wrap');
+  if(!user){ gate.style.display='flex'; mypage.style.display='none'; return; }
+  currentUser=user;
+  gate.style.display='none'; mypage.style.display='block'; menuWrap.style.display='flex';
+  await initProfile(user);
+  await loadApplication(user);
+});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // Panel switching
+  document.querySelectorAll('.profile-menu button').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.profile-menu button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const panel=btn.dataset.panel;
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+panel).classList.add('active');
+    if(panel==='application' && currentUser) loadApplication(currentUser);
+    if(panel==='suggestions') loadSuggestions();
+  }));
+
+  // Nickname save
+  document.getElementById('save-nickname-btn').addEventListener('click',async()=>{
+    const nick=document.getElementById('nickname-input').value.trim();
+    const errEl=document.getElementById('nickname-error');
+    const sucEl=document.getElementById('nickname-success');
+    errEl.textContent=''; sucEl.textContent='';
+    if(!nick){ errEl.textContent='닉네임을 입력해주세요.'; return; }
+    if(nick.length<2){ errEl.textContent='닉네임은 2자 이상이어야 합니다.'; return; }
+    try{
+      await updateProfile(auth.currentUser,{displayName:nick});
+      document.getElementById('profile-name').textContent=nick;
+      document.getElementById('profile-avatar').textContent=nick[0].toUpperCase();
+      sucEl.textContent='✓ 닉네임이 변경되었습니다.';
+      toast('닉네임이 변경되었습니다.','success');
+    }catch(e){ errEl.textContent='변경 실패: '+e.message; }
+  });
+
+  // Password change
+  document.getElementById('save-pw-btn').addEventListener('click',async()=>{
+    const pw=document.getElementById('new-pw-input').value;
+    const pw2=document.getElementById('new-pw-confirm').value;
+    const errEl=document.getElementById('pw-error');
+    const sucEl=document.getElementById('pw-success');
+    errEl.textContent=''; sucEl.textContent='';
+    if(!pw||pw.length<6){ errEl.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
+    if(pw!==pw2){ errEl.textContent='비밀번호가 일치하지 않습니다.'; return; }
+    try{
+      await updatePassword(auth.currentUser,pw);
+      sucEl.textContent='✓ 비밀번호가 변경되었습니다.';
+      document.getElementById('new-pw-input').value='';
+      document.getElementById('new-pw-confirm').value='';
+      toast('비밀번호가 변경되었습니다.','success');
+    }catch(e){
+      if(e.code==='auth/requires-recent-login') errEl.textContent='보안을 위해 재로그인 후 다시 시도해주세요.';
+      else if(e.code==='auth/invalid-credential'||e.code==='auth/no-such-provider') errEl.textContent='소셜 로그인 계정은 비밀번호 변경을 지원하지 않습니다.';
+      else errEl.textContent='변경 실패: '+e.message;
+    }
+  });
+
+  // Edit Application
+  document.getElementById('save-app-edit-btn').addEventListener('click',async()=>{
+    if(!editingAppId) return;
+    const name=document.getElementById('edit-app-name').value.trim();
+    const grade=document.getElementById('edit-app-grade').value;
+    const cls=document.getElementById('edit-app-class').value.trim();
+    const q1=document.getElementById('edit-app-q1').value.trim();
+    const q2=document.getElementById('edit-app-q2').value.trim();
+    const errEl=document.getElementById('edit-app-error');
+    if(!name||!cls){ errEl.textContent='이름과 반을 입력해주세요.'; return; }
+    try{
+      await updateDoc(doc(db,'applications',editingAppId),{name,grade,class:cls,q1,q2,updatedAt:serverTimestamp()});
+      toast('신청서가 수정되었습니다.','success');
+      closeAllModals();
+      await loadApplication(currentUser);
+    }catch(e){ errEl.textContent='수정 실패: '+e.message; }
+  });
+  document.getElementById('cancel-app-edit-btn').addEventListener('click',closeAllModals);
+
+  // Suggestion delete with password
+  document.getElementById('sg-pw-confirm-btn').addEventListener('click',async()=>{
+    const pw=document.getElementById('sg-del-pw-input').value;
+    const errEl=document.getElementById('sg-pw-error');
+    if(!pw){ errEl.textContent='비밀번호를 입력해주세요.'; return; }
+    if(btoa(pw)!==deleteSgHash){ errEl.textContent='비밀번호가 올바르지 않습니다.'; return; }
+    await deleteSuggestion(deleteSgId);
+  });
+
+  // Nav
+  const menuBtn=document.getElementById('user-menu-btn');
+  const dropdown=document.getElementById('user-dropdown');
+  menuBtn.addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open');});
+  document.addEventListener('click',()=>dropdown.classList.remove('open'));
+  document.getElementById('logout-btn').addEventListener('click',async()=>{ await signOut(auth); toast('로그아웃되었습니다.','info'); location.href='index.html'; });
+
+  document.querySelectorAll('.modal-close').forEach(b=>b.addEventListener('click',closeAllModals));
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)closeAllModals(); }));
+});
+</script>
+</body>
+</html>
