@@ -22,8 +22,8 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 const gp   = new GoogleAuthProvider();
-
 const OWNER_EMAILS = ['yunthomas0120@gmail.com', 'yunarchive0120@gmail.com'];
+
 function isOwner(u) { return !!u && OWNER_EMAILS.includes(u.email); }
 
 // ── 관리자 권한 확인 ──────────────────────────────────────────────────────────
@@ -45,21 +45,17 @@ async function checkAdmin(user) {
 function maskName(nameOrEmail) {
   if (!nameOrEmail) return '익명';
   
-  // 1. 이메일 아이디인 경우 (예: abcde@... -> a****)
   if (nameOrEmail.includes('@')) {
     const local = nameOrEmail.split('@')[0];
     if (local.length <= 1) return local + '*';
     const first = local.charAt(0);
-    const stars = '*'.repeat(Math.min(local.length - 1, 8)); // 너무 길어지지 않게 제한
+    const stars = '*'.repeat(Math.min(local.length - 1, 8));
     return first + stars;
   }
-
-  // 2. 일반 이름인 경우 (예: 홍길동 -> 홍**, 남궁민수 -> 남***)
   if (nameOrEmail.length === 1) return nameOrEmail;
   
   const first = nameOrEmail.charAt(0);
   const stars = '*'.repeat(nameOrEmail.length - 1);
-  
   return first + stars;
 }
 
@@ -81,15 +77,15 @@ function fmtDateFull(ts) {
 }
 function toast(msg, type='info') {
   const c = document.getElementById('toast-container');
+  if(!c) return;
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = msg;
   c.appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
-function openModal(id)  { document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
-function closeModal(id) { document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
-
+function openModal(id)  { const el=document.getElementById(id); if(el){ el.style.display='flex'; document.body.style.overflow='hidden'; } }
+function closeModal(id) { const el=document.getElementById(id); if(el){ el.style.display='none'; document.body.style.overflow=''; } }
 function translateAuthError(code) {
   const m = {
     'auth/user-not-found':'등록되지 않은 이메일입니다.',
@@ -115,6 +111,7 @@ let currentPostId = null;
 // ── 게시글 로드 ───────────────────────────────────────────────────────────────
 async function loadPosts() {
   const tbody = document.getElementById('board-tbody');
+  if(!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" class="board-empty">불러오는 중...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'community_posts'), orderBy('createdAt','desc')));
@@ -131,7 +128,8 @@ async function loadPosts() {
 }
 
 function applyFilter() {
-  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const searchInput = document.getElementById('search-input');
+  const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
   let posts = q ? allPosts.filter(p => p.title.toLowerCase().includes(q)) : [...allPosts];
   
   posts.sort((a, b) => {
@@ -148,17 +146,20 @@ function applyFilter() {
 
 function renderBoard() {
   const tbody = document.getElementById('board-tbody');
-  document.getElementById('board-count').textContent = `전체 ${filteredPosts.length}개`;
+  const countEl = document.getElementById('board-count');
+  if (countEl) countEl.textContent = `전체 ${filteredPosts.length}개`;
+  
   if (!filteredPosts.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="board-empty">게시글이 없습니다.</td></tr>';
-    document.getElementById('pagination').innerHTML = '';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="6" class="board-empty">게시글이 없습니다.</td></tr>';
+    const pageEl = document.getElementById('pagination');
+    if(pageEl) pageEl.innerHTML = '';
     return;
   }
   
   const noticeCount = filteredPosts.filter(p => p.isNotice).length;
   const start = (currentPage - 1) * PAGE_SIZE;
   const page  = filteredPosts.slice(start, start + PAGE_SIZE);
-  tbody.innerHTML = '';
+  if(tbody) tbody.innerHTML = '';
   
   page.forEach((post, i) => {
     const absoluteIndex = start + i;
@@ -172,7 +173,6 @@ function renderBoard() {
       const normalIndex = absoluteIndex - noticeCount;
       numStr = (filteredPosts.length - noticeCount) - normalIndex;
     }
-
     const tr = document.createElement('tr');
     if (post.isNotice) tr.className = 'row-notice';
     tr.innerHTML = `
@@ -188,7 +188,7 @@ function renderBoard() {
       <td class="col-views">${post.views || 0}</td>
       <td class="col-comments">${post.commentCount > 0 ? post.commentCount : ''}</td>`;
     tr.addEventListener('click', () => openPost(post.id));
-    tbody.appendChild(tr);
+    if(tbody) tbody.appendChild(tr);
   });
   renderPagination();
 }
@@ -196,348 +196,266 @@ function renderBoard() {
 function renderPagination() {
   const total = Math.ceil(filteredPosts.length / PAGE_SIZE);
   const el = document.getElementById('pagination');
+  if (!el) return;
   if (total <= 1) { el.innerHTML = ''; return; }
+  
   let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="gotoPage(${currentPage-1})">‹</button>`;
   for (let i = 1; i <= total; i++) {
     if (total > 7 && i !== 1 && i !== total && (i < currentPage-2 || i > currentPage+2)) {
-      if (i === currentPage-3 || i === currentPage+3) html += `<span style="color:var(--gray);padding:0 4px;line-height:34px;">…</span>`;
+      if (i === currentPage-3 || i === currentPage+3) html += `<span class="page-dots">...</span>`;
       continue;
     }
-    html += `<button class="page-btn${i===currentPage?' active':''}" onclick="gotoPage(${i})">${i}</button>`;
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="gotoPage(${i})">${i}</button>`;
   }
   html += `<button class="page-btn" ${currentPage===total?'disabled':''} onclick="gotoPage(${currentPage+1})">›</button>`;
   el.innerHTML = html;
 }
-window.gotoPage = p => { currentPage = p; renderBoard(); window.scrollTo({top:0,behavior:'smooth'}); };
 
-// ── 게시글 전체 삭제 (운영담당자 전용) ───────────────────────────────────────────
-async function deleteAllPosts() {
-  if (!isOwner(currentUser)) {
-    toast('운영담당자만 접근할 수 있습니다.', 'error');
-    return;
+window.gotoPage = function(page) {
+  const total = Math.ceil(filteredPosts.length / PAGE_SIZE);
+  if (page >= 1 && page <= total) {
+    currentPage = page;
+    renderBoard();
   }
-  if (!confirm('🚨 경고: 정말로 모든 게시글과 댓글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+};
 
-  const btn = document.getElementById('delete-all-btn');
-  btn.disabled = true; btn.textContent = '삭제 진행 중...';
-
-  try {
-    const snap = await getDocs(collection(db, 'community_posts'));
-    for (const docSnap of snap.docs) {
-      const postId = docSnap.id;
-      const commentsSnap = await getDocs(collection(db, 'community_posts', postId, 'comments'));
-      for (const commentSnap of commentsSnap.docs) {
-        await deleteDoc(commentSnap.ref);
-      }
-      await deleteDoc(docSnap.ref);
-    }
-    toast('모든 게시글이 삭제되었습니다.', 'success');
-    loadPosts();
-  } catch (error) {
-    toast('전체 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '🚨 전체 삭제';
-  }
-}
-
-// ── 글 열기 및 본인 확인 ───────────────────────────────────────────────────────────
+// ── 게시글 읽기/상세 ─────────────────────────────────────────────────────────
 async function openPost(postId) {
   currentPostId = postId;
-  if (currentUser) {
-    try { await updateDoc(doc(db,'community_posts',postId), { views: increment(1) }); } catch {}
-  }
-  
   try {
-    const snap = await getDoc(doc(db,'community_posts',postId));
-    if (!snap.exists()) { toast('삭제된 글입니다.','error'); return; }
+    // 조회수 증가 로직
+    const postRef = doc(db, 'community_posts', postId);
+    await updateDoc(postRef, { views: increment(1) });
+    
+    const snap = await getDoc(postRef);
+    if (!snap.exists()) { toast('게시글이 존재하지 않습니다.', 'error'); return; }
+    
     const data = snap.data();
-    const displayName = data.authorName || data.authorEmail;
+    document.getElementById('post-view-title').textContent = data.title;
+    const authorStr = maskName(data.authorName || data.authorEmail);
+    document.getElementById('post-view-info').textContent = `작성자: ${authorStr} | 작성일: ${fmtDateFull(data.createdAt)} | 조회수: ${data.views + 1 || 1}`;
+    document.getElementById('post-view-content').innerHTML = esc(data.content).replace(/\n/g, '<br>');
     
-    const titlePrefix = data.isNotice ? '<span class="badge-notice" style="margin-right:8px;font-size:0.8rem;">[공지]</span>' : '';
-    document.getElementById('view-title').innerHTML = titlePrefix + esc(data.title);
+    // 작성자 본인 또는 관리자만 삭제 가능
+    const isAuthor = currentUser && (currentUser.email === data.authorEmail);
+    document.getElementById('btn-delete-post').style.display = (isAuthor || isAdminUser) ? 'inline-block' : 'none';
     
-    document.getElementById('view-author').textContent  = maskName(displayName);
-    document.getElementById('view-date').textContent    = fmtDateFull(data.createdAt);
-    document.getElementById('view-views').textContent   = ((data.views||0) + (currentUser?1:0)) + ' 조회';
-    document.getElementById('view-content').textContent = data.content;
-    
-    const footer = document.getElementById('view-footer-actions');
-    footer.innerHTML = '';
-    
-    const isMyPost = currentUser && currentUser.email === data.authorEmail;
-    if (isOwner(currentUser) || isAdminUser || isMyPost) {
-      const b = document.createElement('button');
-      b.className = 'btn btn-danger btn-sm';
-      b.textContent = '🗑️ 글 삭제';
-      b.addEventListener('click', () => deletePost(postId, data.authorEmail));
-      footer.appendChild(b);
-    }
-    openModal('view-modal');
     loadComments(postId);
-  } catch(e) { toast('글을 불러올 수 없습니다: '+e.message,'error'); }
-}
-
-async function deletePost(postId, authorEmail) {
-  const isMyPost = currentUser && currentUser.email === authorEmail;
-  if (!isOwner(currentUser) && !isAdminUser && !isMyPost) { toast('삭제 권한이 없습니다.','error'); return; }
-  
-  if (!confirm('이 글을 삭제할까요? 댓글도 함께 삭제됩니다.')) return;
-  try {
-    const cs = await getDocs(collection(db,'community_posts',postId,'comments'));
-    await Promise.all(cs.docs.map(d => deleteDoc(d.ref)));
-    await deleteDoc(doc(db,'community_posts',postId));
-    closeModal('view-modal');
-    toast('글이 삭제되었습니다.','info');
-    loadPosts();
-  } catch(e) { toast('삭제 실패: '+e.message,'error'); }
-}
-
-// ── 댓글 및 본인 확인 ───────────────────────────────────────────────────────────────
-async function loadComments(postId) {
-  const list = document.getElementById('comment-list');
-  const titleEl = document.getElementById('comments-title');
-  const writeArea = document.getElementById('comment-write-area');
-  list.innerHTML = '<div class="comment-empty">불러오는 중...</div>';
-  try {
-    const snap = await getDocs(query(collection(db,'community_posts',postId,'comments'), orderBy('createdAt','asc')));
-    titleEl.textContent = `댓글 ${snap.size}개`;
-    list.innerHTML = '';
-    if (snap.empty) {
-      list.innerHTML = '<div class="comment-empty">첫 댓글을 남겨보세요!</div>';
-    } else {
-      snap.forEach(d => {
-        const data = d.data();
-        const item = document.createElement('div');
-        item.className = 'comment-item';
-        
-        const displayName = data.authorName || data.authorEmail;
-        const initial = (displayName?.[0]||'?').toUpperCase();
-        
-        const isMyComment = currentUser && currentUser.email === data.authorEmail;
-        const canDelete = isOwner(currentUser) || isAdminUser || isMyComment;
-        
-        item.innerHTML = `
-          <div class="comment-avatar">${initial}</div>
-          <div class="comment-main">
-            <div class="comment-author">${esc(maskName(displayName))}</div>
-            <div class="comment-text">${esc(data.content)}</div>
-            <div class="comment-date">${fmtDateFull(data.createdAt)}</div>
-          </div>
-          ${canDelete ? `<button class="comment-del-btn" data-cid="${d.id}" data-author="${data.authorEmail}" title="삭제">✕</button>` : ''}`;
-        
-        item.querySelectorAll('[data-cid]').forEach(b =>
-          b.addEventListener('click', () => deleteComment(postId, b.dataset.cid, b.dataset.author))
-        );
-        list.appendChild(item);
-      });
-    }
-  } catch(e) { list.innerHTML = `<div class="comment-empty" style="color:var(--red);">오류: ${e.message}</div>`; }
-
-  writeArea.innerHTML = '';
-  if (currentUser) {
-    const row = document.createElement('div');
-    row.className = 'comment-write';
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.className = 'comment-input';
-    inp.placeholder = '댓글을 입력하세요...'; inp.maxLength = 300;
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-blue btn-sm';
-    btn.textContent = '등록';
-    btn.addEventListener('click', async () => {
-      const val = inp.value.trim();
-      if (!val) return;
-      btn.disabled = true;
-      try {
-        await addDoc(collection(db,'community_posts',postId,'comments'), {
-          content: val, authorEmail: currentUser.email,
-          authorName: currentUser.displayName || '', 
-          createdAt: serverTimestamp()
-        });
-        inp.value = '';
-        loadComments(postId);
-      } catch(e) { toast('댓글 등록 실패: '+e.message,'error'); }
-      btn.disabled = false;
-    });
-    inp.addEventListener('keydown', e => { if(e.key==='Enter') btn.click(); });
-    row.appendChild(inp); row.appendChild(btn);
-    writeArea.appendChild(row);
-  } else {
-    writeArea.innerHTML = '<div class="comment-login-notice">💬 댓글을 달려면 <a href="#" id="cmt-login-link" style="color:var(--blue);text-decoration:none;font-weight:500;">로그인</a>이 필요합니다.</div>';
-    document.getElementById('cmt-login-link')?.addEventListener('click', e => {
-      e.preventDefault(); closeModal('view-modal'); openModal('login-modal');
-    });
+    openModal('post-view-modal');
+  } catch(e) {
+    toast('게시글을 불러오는 중 오류가 발생했습니다.', 'error');
   }
 }
 
-async function deleteComment(postId, cid, commentAuthorEmail) {
-  const isMyComment = currentUser && currentUser.email === commentAuthorEmail;
-  if (!isOwner(currentUser) && !isAdminUser && !isMyComment) { toast('삭제 권한이 없습니다.','error'); return; }
-  
-  if (!confirm('댓글을 삭제할까요?')) return;
+async function deletePost() {
+  if (!currentPostId) return;
+  if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
   try {
-    await deleteDoc(doc(db,'community_posts',postId,'comments',cid));
-    loadComments(postId);
-    toast('댓글이 삭제되었습니다.','info');
-  } catch(e) { toast('삭제 실패: '+e.message,'error'); }
-}
-
-// ── 글 작성 ───────────────────────────────────────────────────────────────────
-async function submitPost() {
-  if (!currentUser) { toast('로그인이 필요합니다.','error'); return; }
-  const title   = document.getElementById('post-title-input').value.trim();
-  const content = document.getElementById('post-content-input').value.trim();
-  const isNotice = document.getElementById('post-is-notice').checked;
-  
-  if (!title)   { toast('제목을 입력해주세요.','error'); return; }
-  if (!content) { toast('내용을 입력해주세요.','error'); return; }
-  const btn = document.getElementById('post-submit-btn');
-  btn.disabled = true; btn.textContent = '저장 중...';
-  try {
-    await addDoc(collection(db,'community_posts'), {
-      title, content, authorEmail: currentUser.email,
-      authorName: currentUser.displayName || '',
-      isNotice: isNotice && isAdminUser,
-      createdAt: serverTimestamp(), views: 0
-    });
-    closeModal('write-modal');
-    document.getElementById('post-title-input').value = '';
-    document.getElementById('post-content-input').value = '';
-    document.getElementById('post-is-notice').checked = false;
-    toast('글이 등록되었습니다.','success');
+    await deleteDoc(doc(db, 'community_posts', currentPostId));
+    toast('게시글이 삭제되었습니다.', 'success');
+    closeModal('post-view-modal');
     loadPosts();
-  } catch(e) { toast('등록 실패: '+e.message,'error'); }
-  btn.disabled = false; btn.textContent = '게시하기';
+  } catch(e) {
+    toast('삭제 실패: ' + e.message, 'error');
+  }
 }
 
-// ── Auth 상태 ─────────────────────────────────────────────────────────────────
+// ── 게시글 쓰기 ──────────────────────────────────────────────────────────────
+async function savePost(e) {
+  e.preventDefault();
+  if (!currentUser) { toast('로그인이 필요합니다.', 'error'); return; }
+  
+  const title = document.getElementById('write-title').value.trim();
+  const content = document.getElementById('write-content').value.trim();
+  const isNoticeEl = document.getElementById('write-is-notice');
+  const isNotice = isNoticeEl ? isNoticeEl.checked : false;
+
+  if (!title || !content) { toast('제목과 내용을 모두 입력해주세요.', 'error'); return; }
+
+  const btn = document.getElementById('btn-save-post');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+
+  try {
+    await addDoc(collection(db, 'community_posts'), {
+      title,
+      content,
+      authorEmail: currentUser.email,
+      authorName: currentUser.displayName || currentUser.email.split('@')[0],
+      createdAt: serverTimestamp(),
+      views: 0,
+      isNotice: isAdminUser ? isNotice : false
+    });
+    toast('게시글이 등록되었습니다.', 'success');
+    closeModal('write-modal');
+    document.getElementById('write-form').reset();
+    loadPosts();
+  } catch(err) {
+    toast('등록 실패: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '등록';
+  }
+}
+
+// ── 댓글 관리 ─────────────────────────────────────────────────────────────────
+async function loadComments(postId) {
+  const cList = document.getElementById('comment-list');
+  cList.innerHTML = '<div style="font-size:0.85rem; color:var(--gray);">댓글 불러오는 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'community_posts', postId, 'comments'), orderBy('createdAt', 'asc')));
+    cList.innerHTML = '';
+    if (snap.empty) {
+      cList.innerHTML = '<div style="font-size:0.85rem; color:var(--gray);">댓글이 없습니다.</div>';
+      return;
+    }
+    
+    snap.forEach(d => {
+      const data = d.data();
+      const div = document.createElement('div');
+      div.className = 'comment-item';
+      
+      const isCmtAuthor = currentUser && (currentUser.email === data.authorEmail);
+      const delBtnHtml = (isCmtAuthor || isAdminUser) ? `<button class="btn-del-cmt" data-id="${d.id}">✕</button>` : '';
+      
+      div.innerHTML = `
+        <div class="cmt-header">
+          <strong>${esc(maskName(data.authorName || data.authorEmail))}</strong>
+          <span class="cmt-date">${fmtDateFull(data.createdAt)}</span>
+          ${delBtnHtml}
+        </div>
+        <div class="cmt-body">${esc(data.content).replace(/\n/g, '<br>')}</div>
+      `;
+      cList.appendChild(div);
+    });
+
+    // 댓글 삭제 이벤트 바인딩
+    cList.querySelectorAll('.btn-del-cmt').forEach(btn => {
+      btn.addEventListener('click', () => deleteComment(postId, btn.dataset.id));
+    });
+
+  } catch(e) {
+    cList.innerHTML = `<div style="color:var(--red);">댓글 오류: ${esc(e.message)}</div>`;
+  }
+}
+
+async function addComment(e) {
+  e.preventDefault();
+  if (!currentUser) { toast('로그인이 필요합니다.', 'error'); return; }
+  if (!currentPostId) return;
+
+  const input = document.getElementById('comment-input');
+  const content = input.value.trim();
+  if (!content) return;
+
+  const btn = document.getElementById('btn-add-comment');
+  btn.disabled = true;
+
+  try {
+    await addDoc(collection(db, 'community_posts', currentPostId, 'comments'), {
+      content,
+      authorEmail: currentUser.email,
+      authorName: currentUser.displayName || currentUser.email.split('@')[0],
+      createdAt: serverTimestamp()
+    });
+    input.value = '';
+    loadComments(currentPostId);
+    // 캐시된 목록에서 댓글 수 업데이트(UI상 즉시 반영을 위함)
+    const pTarget = allPosts.find(p => p.id === currentPostId);
+    if(pTarget) pTarget.commentCount += 1;
+    renderBoard();
+  } catch(err) {
+    toast('댓글 등록 실패: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteComment(postId, commentId) {
+  if (!confirm('댓글을 삭제하시겠습니까?')) return;
+  try {
+    await deleteDoc(doc(db, 'community_posts', postId, 'comments', commentId));
+    loadComments(postId);
+    const pTarget = allPosts.find(p => p.id === postId);
+    if(pTarget && pTarget.commentCount > 0) pTarget.commentCount -= 1;
+    renderBoard();
+    toast('댓글이 삭제되었습니다.', 'info');
+  } catch(e) {
+    toast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+// ── 인증 상태 리스너 ──────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   currentUser = user;
-  const loginBtn  = document.getElementById('login-btn');
-  const menuWrap  = document.getElementById('user-menu-wrap');
-  const userInfo  = document.getElementById('user-info');
-  const writeBtn  = document.getElementById('write-btn');
-  const writeBtnL = document.getElementById('write-btn-login');
-  const deleteAllBtn = document.getElementById('delete-all-btn');
-  const noticeCheckboxWrap = document.getElementById('notice-checkbox-wrap');
-
-  if (user) {
-    isAdminUser = await checkAdmin(user);
-    
-    loginBtn.style.display  = 'none';
-    menuWrap.style.display  = 'flex';
-    userInfo.textContent    = isOwner(user) ? `👑 ${user.displayName||user.email}` : (isAdminUser ? `💻 ${user.displayName||user.email}` : (user.displayName||user.email));
-    userInfo.style.display  = 'inline';
-    writeBtn.style.display  = 'inline-block';
-    writeBtnL.style.display = 'none';
-    
-    deleteAllBtn.style.display = isOwner(user) ? 'inline-block' : 'none';
-    noticeCheckboxWrap.style.display = isAdminUser ? 'flex' : 'none';
-  } else {
-    isAdminUser = false;
-    loginBtn.style.display  = 'inline-block';
-    menuWrap.style.display  = 'none';
-    userInfo.style.display  = 'none';
-    writeBtn.style.display  = 'none';
-    writeBtnL.style.display = 'inline-block';
-    deleteAllBtn.style.display = 'none';
-    noticeCheckboxWrap.style.display = 'none';
-  }
+  isAdminUser = await checkAdmin(user);
   
-  if (currentPostId && document.getElementById('view-modal').style.display === 'flex') {
-    loadComments(currentPostId);
+  const writeBtn = document.getElementById('btn-open-write');
+  if (writeBtn) writeBtn.style.display = user ? 'inline-block' : 'none';
+  
+  const noticeWrapper = document.getElementById('write-notice-wrapper');
+  if (noticeWrapper) noticeWrapper.style.display = isAdminUser ? 'flex' : 'none';
+  
+  // 로그인 안 된 경우 댓글 창 비활성화/UI 변경 등 처리
+  const commentInput = document.getElementById('comment-input');
+  const commentBtn = document.getElementById('btn-add-comment');
+  if (commentInput && commentBtn) {
+    if (user) {
+      commentInput.placeholder = "댓글을 입력하세요...";
+      commentInput.disabled = false;
+      commentBtn.disabled = false;
+    } else {
+      commentInput.placeholder = "로그인 후 댓글을 작성할 수 있습니다.";
+      commentInput.disabled = true;
+      commentBtn.disabled = true;
+    }
   }
 });
 
-// ── DOMContentLoaded ──────────────────────────────────────────────────────────
+// ── 초기화 및 이벤트 리스너 바인딩 ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   loadPosts();
-
-  let st;
-  document.getElementById('search-input').addEventListener('input', () => {
-    clearTimeout(st); st = setTimeout(applyFilter, 300);
+  
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') applyFilter();
+    });
+  }
+  
+  const searchBtn = document.getElementById('btn-search');
+  if (searchBtn) searchBtn.addEventListener('click', applyFilter);
+  
+  const writeBtn = document.getElementById('btn-open-write');
+  if (writeBtn) writeBtn.addEventListener('click', () => {
+    document.getElementById('write-form').reset();
+    openModal('write-modal');
   });
 
-  document.getElementById('write-btn').addEventListener('click', () => openModal('write-modal'));
-  document.getElementById('write-btn-login').addEventListener('click', () => openModal('login-modal'));
-  document.getElementById('post-submit-btn').addEventListener('click', submitPost);
-  document.getElementById('delete-all-btn').addEventListener('click', deleteAllPosts);
+  const writeForm = document.getElementById('write-form');
+  if (writeForm) writeForm.addEventListener('submit', savePost);
 
-  document.querySelectorAll('[data-close]').forEach(b => {
+  const commentForm = document.getElementById('comment-form');
+  if (commentForm) commentForm.addEventListener('submit', addComment);
+
+  const delPostBtn = document.getElementById('btn-delete-post');
+  if (delPostBtn) delPostBtn.addEventListener('click', deletePost);
+
+  // 모달 닫기 공통
+  document.querySelectorAll('.modal-close').forEach(b => {
     b.addEventListener('click', () => {
-      const id = b.dataset.close;
-      closeModal(id);
-      if (id === 'view-modal') currentPostId = null;
+      b.closest('.modal-overlay').style.display = 'none';
+      document.body.style.overflow = '';
     });
   });
   
+  // 모달 배경 클릭 시 닫기
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
-      if (e.target !== o) return;
-      const id = o.id;
-      closeModal(id);
-      if (id === 'view-modal') currentPostId = null;
+      if (e.target === o) {
+        o.style.display = 'none';
+        document.body.style.overflow = '';
+      }
     });
-  });
-
-  const dropdown = document.getElementById('user-dropdown');
-  document.getElementById('user-menu-btn').addEventListener('click', e => {
-    e.stopPropagation(); dropdown.classList.toggle('open');
-  });
-  document.addEventListener('click', () => dropdown.classList.remove('open'));
-
-  document.getElementById('login-btn').addEventListener('click', () => openModal('login-modal'));
-  
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    await signOut(auth); toast('로그아웃되었습니다.','info'); dropdown.classList.remove('open');
-  });
-
-  document.getElementById('google-login-btn').addEventListener('click', async () => {
-    try { await signInWithPopup(auth,gp); closeModal('login-modal'); toast('Google 로그인 성공','success'); }
-    catch(ex) { document.getElementById('login-error').textContent = translateAuthError(ex.code); }
-  });
-
-  document.getElementById('email-login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('email-login-submit-btn');
-    const err = document.getElementById('login-error');
-    btn.disabled = true; err.textContent = '';
-    
-    try {
-      await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-pw').value);
-      closeModal('login-modal'); 
-      toast('로그인되었습니다.','success');
-      document.getElementById('email-login-form').reset();
-    } catch(ex) { err.textContent = '로그인 실패: '+translateAuthError(ex.code); }
-    
-    btn.disabled = false;
-  });
-
-  document.getElementById('email-signup-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('email-signup-submit-btn');
-    const err = document.getElementById('signup-error');
-    btn.disabled = true; err.textContent = '';
-    
-    try {
-      await createUserWithEmailAndPassword(auth, document.getElementById('signup-email').value, document.getElementById('signup-pw').value);
-      closeModal('login-modal'); 
-      toast('가입이 완료되었습니다.','success');
-      document.getElementById('email-signup-form').reset();
-    } catch(ex) { err.textContent = '가입 실패: '+translateAuthError(ex.code); }
-    
-    btn.disabled = false;
-  });
-
-  document.getElementById('go-signup').addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('login-tab').style.display  = 'none';
-    document.getElementById('signup-tab').style.display = 'block';
-    document.getElementById('login-error').textContent  = '';
-  });
-  document.getElementById('go-login').addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('signup-tab').style.display = 'none';
-    document.getElementById('login-tab').style.display  = 'block';
-    document.getElementById('signup-error').textContent  = '';
   });
 });
