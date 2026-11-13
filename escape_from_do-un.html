@@ -238,6 +238,8 @@ h2{font-family:var(--display);font-weight:400;font-size:27px;margin:0 0 4px;colo
       <button class="btn teal" id="joinBtn">참가</button>
     </div>
     <div class="note" id="onNote"></div>
+    <div class="note err hidden" id="inApp">카카오톡 같은 앱 안의 브라우저에서는 연결이 막힐 수 있어요. 크롬이나 사파리로 열어 주세요.
+      <button class="btn ghost small" id="openExt" style="margin-top:6px">다른 브라우저로 열기</button></div>
     <div class="row"><button class="btn ghost" id="onBack">메뉴로</button></div>
   </div>
 </div>
@@ -248,6 +250,7 @@ h2{font-family:var(--display);font-weight:400;font-size:27px;margin:0 0 4px;colo
     <h2>대기실</h2>
     <div class="codeline"><span class="codebig" id="lbCode"></span>
       <button class="btn ghost small" id="copyCode">코드 복사</button><button class="btn ghost small" id="copyLink">초대 링크 복사</button></div>
+    <div class="note" id="lbNet"></div>
     <div class="players">
       <div class="pslot" id="slotH"></div>
       <div class="pslot" id="slotG"></div>
@@ -1117,7 +1120,7 @@ function note(id,msg,kind,force){ if(id==='lbNote'&&!force&&performance.now()<no
 function netSend(m){ const c=NET.conn; if(c&&c.open){ try{ c.send(m); }catch(_){} } }
 function netGame(m){ m.mid=S.mid; netSend(m); }
 function netReset(){ NSID++; clearInterval(NET.pingT); const c=NET.conn,p=NET.peer;
-  Object.assign(NET,{peer:null,conn:null,isHost:false,code:null,lastRecv:0,rtt:null,pend:null,pingT:null}); L=null;
+  clearTimeout(NET.recoverT); Object.assign(NET,{peer:null,conn:null,isHost:false,code:null,lastRecv:0,rtt:null,pend:null,pingT:null,recoverT:null,confirmed:false,connT:0,wasOnline:false}); L=null; keepAwake(false);
   try{ c&&c.close(); }catch(_){} try{ p&&p.destroy(); }catch(_){} setBusy(false); }
 function setBusy(b){ $('createBtn').disabled=b; $('joinBtn').disabled=b; }
 function netErrMsg(e){ const t=e&&e.type; if(t==='browser-incompatible') return '이 브라우저는 온라인 대결을 지원하지 않아요. 크롬이나 사파리 최신 버전으로 열어 주세요.';
@@ -1132,56 +1135,126 @@ function bindConn(c,sid){
   c.on('close',()=>{ if(sid!==NSID||NET.conn!==c) return; onConnLost(); });
   c.on('error',()=>{});
 }
+const PEER_OPTS={debug:0,config:{iceServers:[
+  {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302']},
+  {urls:'stun:stun.cloudflare.com:3478'},
+  {urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}};
+const NET_FATAL=['browser-incompatible','ssl-unavailable','invalid-key','invalid-id'];
+const isInApp=/KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent||'');
+let wakeLock=null;
+function keepAwake(on){ try{ if(on&&!wakeLock&&navigator.wakeLock) navigator.wakeLock.request('screen').then(w=>{ wakeLock=w; w.addEventListener('release',()=>{ wakeLock=null; }); }).catch(()=>{});
+  if(!on&&wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; } }catch(_){} }
+function hostOnline(){ const p=NET.peer; return !!(p&&!p.destroyed&&!p.disconnected); }
 function startHeartbeat(sid){ clearInterval(NET.pingT); NET.pingT=setInterval(()=>{ if(sid!==NSID) return;
-  if(NET.conn&&NET.conn.open){ netSend({t:'ping',ts:performance.now()}); if(performance.now()-NET.lastRecv>9000){ const c=NET.conn; NET.conn=null; try{ c.close(); }catch(_){} onConnLost(); } } },2000); }
+  if(NET.isHost){ const on=hostOnline(); if(on!==NET.wasOnline){ NET.wasOnline=on; if(S.phase==='lobby') renderLobby(); } if(!on) scheduleHostRecover(sid,0); }
+  const c=NET.conn;
+  if(c&&c.open){ netSend({t:'ping',ts:performance.now()});
+    if((NET.confirmed||!NET.isHost)&&!NET.pend&&performance.now()-NET.lastRecv>9000){ NET.conn=null; try{ c.close(); }catch(_){} onConnLost(); } }
+  if(NET.isHost&&c&&!NET.confirmed&&performance.now()-NET.connT>20000){ NET.conn=null; try{ c.close(); }catch(_){} }
+},2000); }
+/* ---------- host ---------- */
 function createRoom(){
   const nm=cleanName($('nick').value); prefs.name=nm; LS.set('name',nm);
   if(typeof Peer!=='function'){ note('onNote','온라인 연결 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 페이지를 새로 고쳐 주세요.','err'); return; }
   netReset(); setBusy(true); note('onNote','방을 만드는 중이에요…'); const sid=NSID; let tries=0;
-  const attempt=()=>{ const code=genCode(); let opened=false; const p=new Peer(PREFIX+code.toLowerCase(),{debug:0});
-    const to=setTimeout(()=>{ if(!opened&&sid===NSID){ netReset(); note('onNote',netErrMsg(null),'err'); } },12000);
-    p.on('open',()=>{ if(sid!==NSID){ try{p.destroy();}catch(_){} return; } opened=true; clearTimeout(to); NET.peer=p; NET.isHost=true; NET.code=code;
-      L={code,cfg:sanitizeCfg(Object.assign({},DEF_CFG,{theme:prefs.theme})),host:{name:nm,role:null,ready:true},guest:null,score:{h:0,g:0},phase:'lobby',round:0};
-      startHeartbeat(sid); enterLobby(); });
-    p.on('connection',c=>{ if(sid===NSID) hostAccept(c,sid); });
-    p.on('error',e=>{ if(sid!==NSID) return; if(!opened){ clearTimeout(to); try{p.destroy();}catch(_){} if(e.type==='unavailable-id'&&++tries<4) attempt(); else { netReset(); note('onNote',netErrMsg(e),'err'); } } });
-    p.on('disconnected',()=>{ if(sid===NSID&&opened){ try{ p.reconnect(); }catch(_){} } });
-  }; attempt();
+  const attempt=()=>{ const code=genCode();
+    hostPeer(code,sid,true,(err)=>{ if(sid!==NSID) return;
+      if(err&&err.type==='unavailable-id'&&++tries<4) attempt(); else { netReset(); note('onNote',netErrMsg(err),'err'); } }); };
+  attempt();
+}
+function hostPeer(code,sid,first,onFirstFail){
+  const p=new Peer(PREFIX+code.toLowerCase(),PEER_OPTS); let opened=false;
+  const to=first?setTimeout(()=>{ if(!opened&&sid===NSID){ try{p.destroy();}catch(_){} onFirstFail({type:'server-timeout'}); } },15000):0;
+  p.on('open',()=>{ if(sid!==NSID){ try{p.destroy();}catch(_){} return; } opened=true; clearTimeout(to); NET.peer=p; NET.wasOnline=true;
+    if(first){ NET.isHost=true; NET.code=code;
+      L={code,cfg:sanitizeCfg(Object.assign({},DEF_CFG,{theme:prefs.theme})),host:{name:prefs.name,role:null,ready:true},guest:null,score:{h:0,g:0},phase:'lobby',round:0};
+      startHeartbeat(sid); enterLobby(); }
+    else if(S.phase==='lobby') renderLobby(); });
+  p.on('connection',c=>{ if(sid===NSID&&NET.peer===p) hostAccept(c,sid); });
+  p.on('disconnected',()=>{ if(sid===NSID&&NET.peer===p){ if(S.phase==='lobby') renderLobby(); scheduleHostRecover(sid,800); } });
+  p.on('error',e=>{ if(sid!==NSID) return;
+    if(!opened){ clearTimeout(to); try{p.destroy();}catch(_){} if(first) onFirstFail(e); else scheduleHostRecover(sid,3000); return; }
+    if(e.type==='peer-unavailable') return;
+    if(NET_FATAL.includes(e.type)) return;
+    scheduleHostRecover(sid,1500); });
+  return p;
+}
+function scheduleHostRecover(sid,delay){
+  if(NET.recoverT||sid!==NSID||!NET.isHost) return;
+  NET.recoverT=setTimeout(()=>{ NET.recoverT=null; if(sid!==NSID||!NET.isHost) return;
+    const p=NET.peer;
+    if(p&&!p.destroyed&&p.disconnected){ try{ p.reconnect(); }catch(_){} }
+    else if(!p||p.destroyed){ NET.peer=null; hostPeer(NET.code,sid,false); }
+  },delay);
 }
 function hostAccept(c,sid){
-  const stale=NET.conn&&performance.now()-NET.lastRecv>9000;
-  if((NET.conn&&!stale)||(L&&L.phase==='game')){ c.on('open',()=>{ try{ c.send({t:'full'}); }catch(_){} setTimeout(()=>{ try{c.close();}catch(_){} },600); }); return; }
-  if(NET.conn){ const old=NET.conn; NET.conn=null; try{ old.close(); }catch(_){} if(L) L.guest=null; }
-  NET.conn=c; NET.lastRecv=performance.now(); bindConn(c,sid);
+  const busy=NET.conn&&NET.confirmed&&NET.conn.open&&performance.now()-NET.lastRecv<9000;
+  if(busy||(L&&L.phase==='game')){ c.on('open',()=>{ try{ c.send({t:'full'}); }catch(_){} setTimeout(()=>{ try{c.close();}catch(_){} },600); }); return; }
+  if(NET.conn){ const old=NET.conn; NET.conn=null; try{ old.close(); }catch(_){} if(L&&L.guest){ L.guest=null; } }
+  NET.conn=c; NET.confirmed=false; NET.connT=performance.now(); NET.lastRecv=performance.now(); bindConn(c,sid);
 }
+/* ---------- guest ---------- */
 function joinRoom(){
   const nm=cleanName($('nick').value); prefs.name=nm; LS.set('name',nm);
   const code=$('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(code.length!==6){ note('onNote','방 코드 6자리를 입력해 주세요.','err'); return; }
-  if(typeof Peer!=='function'){ note('onNote','온라인 연결 도구를 불러오지 못했어요. 페이지를 새로 고쳐 주세요.','err'); return; }
-  netReset(); setBusy(true); note('onNote','방에 연결하는 중이에요…'); const sid=NSID; let ok=false;
-  const to=setTimeout(()=>{ if(!ok&&sid===NSID){ netReset(); note('onNote','방에 연결하지 못했어요. 코드를 확인하고 다시 시도해 주세요.','err'); } },15000);
-  NET.pend=()=>{ ok=true; clearTimeout(to); };
-  const p=new Peer({debug:0});
-  p.on('open',()=>{ if(sid!==NSID){ try{p.destroy();}catch(_){} return; } NET.peer=p; NET.code=code; const c=p.connect(PREFIX+code.toLowerCase(),{reliable:true}); NET.conn=c; bindConn(c,sid);
-    c.on('open',()=>{ if(sid!==NSID) return; NET.lastRecv=performance.now(); c.send({t:'hello',name:nm,v:PROTO}); startHeartbeat(sid); }); });
-  p.on('error',e=>{ if(sid!==NSID) return; if(!ok){ clearTimeout(to); netReset(); note('onNote',netErrMsg(e),'err'); } });
+  if(typeof Peer!=='function'){ note('onNote','온라인 연결 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 페이지를 새로 고쳐 주세요.','err'); return; }
+  netReset(); setBusy(true); const sid=NSID, hostId=PREFIX+code.toLowerCase(), deadline=performance.now()+75000;
+  let attempt=0, lastKind='', retryT=null, done=false, iceState='';
+  NET.code=code; NET.pend=()=>{ done=true; clearTimeout(retryT); };
+  note('onNote','연결 서버에 접속하는 중이에요…');
+  const fail=(kind,e)=>{ if(done||sid!==NSID) return; done=true; clearTimeout(retryT); netReset(); note('onNote',joinFailMsg(kind,e,iceState),'err'); };
+  const retry=(kind)=>{ if(done||sid!==NSID) return; lastKind=kind;
+    if(performance.now()>deadline){ fail(kind); return; }
+    note('onNote',kind==='nohost'?`방장을 찾는 중이에요 (${attempt}번째 시도). 방장이 게임 화면을 켜 두고 있어야 들어갈 수 있어요. 방장이 화면으로 돌아오면 자동으로 들어가요.`
+      :`방장과 직접 연결이 잘 안 돼서 다시 시도하는 중이에요 (${attempt}번째 시도)…`);
+    clearTimeout(retryT); retryT=setTimeout(tryConnect,2500); };
+  const p=new Peer(PEER_OPTS); NET.peer=p;
+  const srvTo=setTimeout(()=>{ if(!p.open&&!done) fail('server',{type:'server-timeout'}); },15000);
+  function tryConnect(){
+    if(done||sid!==NSID) return; if(p.destroyed){ fail('server',{type:'socket-closed'}); return; }
+    if(p.disconnected){ try{ p.reconnect(); }catch(_){} retryT=setTimeout(tryConnect,2000); return; }
+    attempt++; if(attempt===1) note('onNote','방을 찾았는지 확인하는 중이에요…');
+    if(NET.conn){ const old=NET.conn; NET.conn=null; try{ old.close(); }catch(_){} }
+    const c=p.connect(hostId,{reliable:true,serialization:'json'}); NET.conn=c; bindConn(c,sid);
+    const iceWatch=setInterval(()=>{ const pc=c.peerConnection; if(pc){ iceState=pc.iceConnectionState||iceState; if(!c.open&&attempt>=1) note('onNote',`방장과 연결을 맺는 중이에요 (${attempt}번째 시도)…`); } },1000);
+    const t=setTimeout(()=>{ clearInterval(iceWatch); if(!c.open&&NET.conn===c&&!done){ NET.conn=null; try{ c.close(); }catch(_){} retry('ice'); } },14000);
+    c.on('open',()=>{ clearInterval(iceWatch); clearTimeout(t); if(sid!==NSID||done) return; NET.lastRecv=performance.now(); note('onNote','방에 들어가는 중이에요…');
+      c.send({t:'hello',name:nm,v:PROTO}); NET.helloT=performance.now(); startHeartbeat(sid); });
+    c.on('close',()=>{ clearInterval(iceWatch); clearTimeout(t); if(!done&&NET.conn===c){ NET.conn=null; retry('closed'); } });
+  }
+  p.on('open',()=>{ clearTimeout(srvTo); if(sid!==NSID){ try{p.destroy();}catch(_){} return; } tryConnect(); });
+  p.on('error',e=>{ if(sid!==NSID) return;
+    if(e.type==='peer-unavailable'){ if(!done) retry('nohost'); return; }
+    if(done) return;
+    if(NET_FATAL.includes(e.type)){ clearTimeout(srvTo); fail('browser',e); return; }
+    if(!p.open&&attempt===0){ clearTimeout(srvTo); fail('server',e); return; }
+    retry('server'); });
+  p.on('disconnected',()=>{ if(sid===NSID&&!done){ try{ p.reconnect(); }catch(_){} } });
+}
+function joinFailMsg(kind,e,ice){
+  const code=(e&&e.type)||kind;
+  if(kind==='nohost') return '방을 찾지 못했어요. 코드가 맞는지, 그리고 방장이 게임 화면을 켜 둔 상태인지 확인해 주세요. 방장이 링크를 보내느라 다른 앱에 가 있으면 방이 잠시 닫혀요. (오류: 방 없음)';
+  if(kind==='ice'||kind==='closed') return `방은 찾았지만 두 기기를 직접 연결하지 못했어요. 회사나 학교 와이파이처럼 막힌 네트워크일 수 있어요. 한 명이 와이파이를 끄고 모바일 데이터로 다시 해 보세요. (오류: 직접 연결 실패${ice?', '+ice:''})`;
+  if(kind==='browser') return '이 브라우저에서는 온라인 대결이 안 돼요. 카카오톡 등 앱 안에서 열었다면 크롬이나 사파리로 열어 주세요. (오류: '+code+')';
+  return '연결 서버에 접속하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. (오류: '+code+')';
 }
 function enterLobby(){
-  S.mode='pvp'; S.phase='lobby'; S.mid=null; setBusy(false); showHud(false); showOverlay('lobby'); buildCfgGrid(); renderLobby();
+  S.mode='pvp'; S.phase='lobby'; S.mid=null; setBusy(false); showHud(false); showOverlay('lobby'); buildCfgGrid(); renderLobby(); keepAwake(true);
   if(L) applyTheme(L.cfg.theme);
   try{ history.replaceState(null,'','#'+NET.code); }catch(_){}
 }
 function broadcast(){ if(!NET.isHost||!L) return; netSend({t:'lobby',L}); renderLobby(); }
 function onConnLost(){
   if(NET.isHost){
-    NET.conn=null; const inGame=S.mode==='pvp'&&(S.phase==='play'||S.phase==='countdown');
+    const wasGuest=NET.confirmed; NET.conn=null; NET.confirmed=false; if(!wasGuest){ if(L&&L.guest){ L.guest=null; broadcast(); } return; }
+    const inGame=S.mode==='pvp'&&(S.phase==='play'||S.phase==='countdown');
     if(L){ L.guest=null; L.phase='lobby'; }
     if(inGame) endGame(null,'left',true); else if(S.phase==='lobby'){ renderLobby(); lbNote('상대가 방을 나갔어요. 새 친구를 기다리는 중이에요.','err'); }
   } else {
-    const inGame=S.mode==='pvp'&&(S.phase==='play'||S.phase==='countdown'), neverJoined=!!NET.pend;
+    if(NET.pend) return;
+    const inGame=S.mode==='pvp'&&(S.phase==='play'||S.phase==='countdown');
     netReset();
-    if(neverJoined){ S.mode=null; S.phase='menu'; showOverlay('online'); note('onNote','방에 들어가지 못했어요. 방이 가득 찼거나 이미 게임 중일 수 있어요.','err'); return; }
     if(inGame) endGame(null,'hostleft',true);
     else if(S.phase!=='over'){ S.mode=null; S.phase='menu'; showHud(false); showOverlay('online'); note('onNote','방장과 연결이 끊겼어요.','err'); applyTheme(prefs.theme); }
   }
@@ -1193,7 +1266,7 @@ function onMsg(m){
   if(t==='pong'){ if(typeof m.ts==='number') NET.rtt=Math.round(performance.now()-m.ts); if(S.phase==='lobby') renderLobby(); return; }
   if(NET.isHost){
     if(!L) return;
-    if(t==='hello'){ if(L.guest){ L.guest.name=cleanName(m.name); broadcast(); return; } L.guest={name:cleanName(m.name),role:other(L.host.role),ready:false}; SFX.ui(); broadcast(); lbNote(`${L.guest.name}님이 들어왔어요.`,'ok'); return; }
+    if(t==='hello'){ NET.confirmed=true; if(L.guest){ L.guest.name=cleanName(m.name); broadcast(); return; } L.guest={name:cleanName(m.name),role:other(L.host.role),ready:false}; SFX.ui(); broadcast(); lbNote(`${L.guest.name}님이 들어왔어요.`,'ok'); return; }
     if(t==='role'&&L.guest){ if((m.role==='runner'||m.role==='seeker')&&m.role!==L.host.role){ L.guest.role=m.role; L.guest.ready=false; } broadcast(); return; }
     if(t==='ready'&&L.guest){ L.guest.ready=!!m.v&&!!L.guest.role; broadcast(); return; }
   } else {
@@ -1204,7 +1277,7 @@ function onMsg(m){
       else if(S.phase==='over'&&L.phase==='lobby'){ goLobby(); lbNote('방장이 대기실로 돌아왔어요.','ok'); }
       return; }
     if(t==='start'&&m.M){ startOnline(m.M); return; }
-    if(t==='full'){ netReset(); S.mode=null; S.phase='menu'; showOverlay('online'); note('onNote','이 방은 가득 찼거나 이미 게임 중이에요.','err'); return; }
+    if(t==='full'){ netReset(); S.mode=null; S.phase='menu'; showOverlay('online'); note('onNote','이 방은 이미 2명이 있거나 게임 중이에요. 판이 끝난 뒤 다시 시도해 주세요.','err'); return; }
     if(t==='kick'){ netReset(); S.mode=null; S.phase='menu'; showHud(false); showOverlay('online'); note('onNote','방장이 방에서 내보냈어요.','err'); applyTheme(prefs.theme); return; }
   }
   if(m.mid&&m.mid===S.mid) handleGameMsg(m);
@@ -1264,6 +1337,11 @@ function buildCfgGrid(){
 function renderLobby(){
   if(!L) return; const host=NET.isHost, me=host?L.host:L.guest, opp=host?L.guest:L.host;
   $('lbCode').textContent=L.code;
+  const nt=$('lbNet');
+  if(host){ const on=hostOnline(); nt.className='note '+(on?'ok':'err');
+    nt.textContent=on?(L.guest?'🟢 방이 열려 있어요.':'🟢 방이 열려 있어요. 링크를 보낸 뒤 꼭 이 화면으로 돌아와서 켜 두세요. 다른 앱에 가 있는 동안은 친구가 들어올 수 없어요.')
+      :'🟠 연결 서버와 다시 연결하는 중이에요. 이 화면을 켜 두세요.'; }
+  else { nt.className='note ok'; nt.textContent='🟢 방장과 연결됐어요'+(NET.rtt!==null?` (핑 ${NET.rtt}ms)`:''); }
   const slot=(el,p,isHost,isMe)=>{ el.textContent=''; el.classList.toggle('me',!!isMe);
     const nm=document.createElement('span'); nm.className='nm'; const st=document.createElement('span'); st.className='st';
     if(!p){ nm.textContent='기다리는 중…'; st.textContent='친구에게 방 코드를 알려 주세요'; el.append(nm,st); return; }
@@ -1433,6 +1511,9 @@ $('goAi').onclick=()=>{ netReset(); S.mode='ai'; S.role='runner'; CFG=sanitizeCf
 $('goOnline').onclick=()=>{ $('nick').value=prefs.name; showOverlay('online'); };
 $('onBack').onclick=()=>{ netReset(); showOverlay('menu'); };
 $('createBtn').onclick=createRoom; $('joinBtn').onclick=joinRoom;
+if(isInApp) $('inApp').classList.remove('hidden');
+$('openExt').onclick=()=>{ const u=location.href; if(/KAKAOTALK/i.test(navigator.userAgent)) location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(u); else copyText(u).then(ok=>note('onNote',ok?'주소를 복사했어요. 크롬이나 사파리 주소창에 붙여 넣어 주세요.':'주소창의 주소를 복사해서 크롬이나 사파리로 열어 주세요.','ok')); };
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&NET.isHost){ scheduleHostRecover(NSID,0); if(S.phase==='lobby'){ renderLobby(); keepAwake(true); } } });
 $('joinCode').addEventListener('input',()=>{ const v=$('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g,''); if(v!==$('joinCode').value) $('joinCode').value=v; });
 $('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter') joinRoom(); });
 $('pickRunner').onclick=()=>pickRole('runner'); $('pickSeeker').onclick=()=>pickRole('seeker');
