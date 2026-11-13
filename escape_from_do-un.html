@@ -228,7 +228,7 @@ h2{font-family:var(--display);font-weight:400;font-size:27px;margin:0 0 4px;colo
 <div id="online" class="overlay hidden">
   <div class="card">
     <h2>온라인 대결</h2>
-    <p class="lead" style="margin:2px 0 6px">계정 없이 방 코드만으로 연결돼요. 방을 만든 사람이 방장이 되어 설정을 정해요.</p>
+    <p class="lead" style="margin:2px 0 6px">계정 없이 방 코드만으로 연결돼요. 서로 다른 기기와 네트워크에서도 중계 서버를 거쳐 연결돼요. 방을 만든 사람이 방장이 되어 설정을 정해요.</p>
     <div class="label">내 닉네임</div>
     <input id="nick" class="txt" maxlength="10" autocomplete="off" spellcheck="false" aria-label="닉네임">
     <button class="mode" id="createBtn"><strong>방 만들기</strong><span>방 코드를 만들어 친구에게 알려줘요</span></button>
@@ -289,7 +289,7 @@ h2{font-family:var(--display);font-weight:400;font-size:27px;margin:0 0 4px;colo
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 'use strict';
 /* ===================== CORE: map, physics, navigation ===================== */
@@ -1106,13 +1106,76 @@ function aiUpdate(dt){
   syncAI();
   if(d<CATCH_R&&Math.abs(r.y-AI.y)<1.7) endGame('seeker','catch');
 }
+/* ===================== RELAY TRANSPORT (MQTT over WebSocket, PeerJS-like API) =====================
+   Every message goes through a public relay broker, so no device-to-device link is needed. */
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+const CODE_CH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const brokerOf=code=>Math.max(0,CODE_CH.indexOf(String(code||'').toUpperCase()[0]))%BROKERS.length;
+const RTOPIC='sandtag3r/';
+class REm{ constructor(){ this._h={}; } on(e,f){ (this._h[e]=this._h[e]||[]).push(f); return this; } emit(e,...a){ (this._h[e]||[]).slice().forEach(f=>{ try{ f(...a); }catch(err){ console.error(err); } }); } }
+class RConn extends REm{
+  constructor(peer,cid,remote){ super(); this.peer=peer; this.cid=cid; this.remote=remote; this.open=false; this._closed=false; peer._conns.set(cid,this); }
+  send(d){ if(this.open) this.peer._pub(this.remote,{k:'data',cid:this.cid,d}); }
+  close(){ if(this._closed) return; this._closed=true; const was=this.open; this.open=false; clearTimeout(this._t); clearTimeout(this._r); this.peer._conns.delete(this.cid);
+    if(was) this.peer._pub(this.remote,{k:'close',cid:this.cid}); setTimeout(()=>this.emit('close'),0); }
+}
+class RPeer extends REm{
+  constructor(a,b){ super();
+    const id=typeof a==='string'?a:null, o=(typeof a==='string'?b:a)||{};
+    this.id=id||('g'+Math.random().toString(36).slice(2,12)); this.claim=!!id; this.open=false; this.disconnected=false; this.destroyed=false; this._conns=new Map();
+    if(typeof mqtt==='undefined'||!mqtt.connect){ setTimeout(()=>this.emit('error',{type:'browser-incompatible'}),0); return; }
+    const bi=o.broker!=null?o.broker:brokerOf(id?id.slice(-6):'');
+    this.broker=bi;
+    this.c=mqtt.connect(BROKERS[bi],{clientId:'st3_'+Math.random().toString(36).slice(2,12),keepalive:15,reconnectPeriod:2000,connectTimeout:7000,clean:true});
+    this._t=setTimeout(()=>{ if(!this.open&&!this.destroyed) this.emit('error',{type:'server-error'}); },10000);
+    this.c.on('connect',()=>this._onConnect());
+    this.c.on('message',(t,p)=>{ let m; try{ m=JSON.parse(typeof p==='string'?p:p.toString()); }catch(_){ return; } if(m&&typeof m==='object') this._onMsg(t,m); });
+    this.c.on('offline',()=>this._down()); this.c.on('error',()=>{});
+    this.c.on('close',()=>{ if(!this.open&&this.claim&&!this.destroyed&&!this._failed){ this._failed=true; clearTimeout(this._t); this.emit('error',{type:'server-error'}); return; } this._down(); });
+  }
+  _down(){ if(this.destroyed||!this.open||this.disconnected) return; this.disconnected=true; this.emit('disconnected'); }
+  _onConnect(){
+    if(this.destroyed) return; const me=RTOPIC+this.id;
+    this.c.subscribe(me,{qos:0},()=>{
+      if(this.destroyed) return;
+      if(this.open){ if(this.disconnected){ this.disconnected=false; this.emit('open',this.id); } return; }
+      if(!this.claim){ this._ready(); return; }
+      this._nonce=Math.random().toString(36).slice(2,12); this._taken=false;
+      this.c.subscribe(RTOPIC+'n/'+this._nonce,{qos:0},()=>{
+        this.c.publish(me,JSON.stringify({k:'claim',n:this._nonce}));
+        setTimeout(()=>{ if(this.destroyed) return; if(this._taken){ this.emit('error',{type:'unavailable-id'}); this.destroy(); } else this._ready(); },1300); });
+    });
+  }
+  _ready(){ clearTimeout(this._t); this.open=true; this.disconnected=false; this.emit('open',this.id); }
+  _pub(to,m){ if(this.destroyed||!this.c) return; m.from=this.id; try{ this.c.publish(RTOPIC+to,JSON.stringify(m)); }catch(_){} }
+  _onMsg(topic,m){
+    if(topic.indexOf(RTOPIC+'n/')===0){ if(m.k==='taken') this._taken=true; return; }
+    if(m.k==='claim'){ if(this.open&&m.n!==this._nonce) try{ this.c.publish(RTOPIC+'n/'+m.n,JSON.stringify({k:'taken'})); }catch(_){} return; }
+    if(!this.open||typeof m.from!=='string'||typeof m.cid!=='string') return;
+    if(m.k==='conn'){
+      if(this._conns.has(m.cid)){ this._pub(m.from,{k:'ack',cid:m.cid}); return; }
+      const c=new RConn(this,m.cid,m.from); c.open=true; this.emit('connection',c); this._pub(m.from,{k:'ack',cid:m.cid}); setTimeout(()=>{ if(c.open) c.emit('open'); },0); return; }
+    const c=this._conns.get(m.cid); if(!c||c.remote!==m.from) return;
+    if(m.k==='ack'){ if(!c.open&&!c._closed){ c.open=true; clearTimeout(c._t); clearTimeout(c._r); c.emit('open'); } return; }
+    if(m.k==='data'){ if(c.open) c.emit('data',m.d); return; }
+    if(m.k==='close'){ if(!c._closed){ c._closed=true; c.open=false; this._conns.delete(c.cid); c.emit('close'); } }
+  }
+  connect(id){ const cid=Math.random().toString(36).slice(2,12), c=new RConn(this,cid,id);
+    const send=()=>{ if(!c.open&&!c._closed) this._pub(id,{k:'conn',cid}); }; send(); c._r=setTimeout(send,1200);
+    c._t=setTimeout(()=>{ if(!c.open&&!c._closed){ c._closed=true; this._conns.delete(cid); this.emit('error',{type:'peer-unavailable'}); } },4000);
+    return c; }
+  reconnect(){ if(this.destroyed||!this.c) return; try{ if(!this.c.connected&&!this.c.reconnecting) this.c.reconnect(); }catch(_){} }
+  destroy(){ if(this.destroyed) return; this.destroyed=true; for(const c of [...this._conns.values()]) c.close(); this.open=false; try{ this.c&&this.c.end(true); }catch(_){} }
+}
+const Peer=RPeer;
 /* ===================== ONLINE (PeerJS, host-authoritative rooms) ===================== */
 const PROTO=3, PREFIX='sandtag3-';
 const NET={peer:null,conn:null,isHost:false,code:null,lastRecv:0,rtt:null,pend:null,pingT:null,sendT:0};
 let NSID=0, L=null;
 const other=r=>r==='runner'?'seeker':r==='seeker'?'runner':null;
 const roleName=r=>r==='runner'?'도망자':r==='seeker'?'술래':'미정';
-function genCode(){ const ch='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=ch[(Math.random()*ch.length)|0]; return s; }
+function genCode(bi){ const ch='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=ch[(Math.random()*ch.length)|0];
+  if(bi!=null){ const firsts=[...ch].filter((_,i)=>i%BROKERS.length===bi); s=firsts[(Math.random()*firsts.length)|0]+s.slice(1); } return s; }
 const cleanName=s=>String(s||'').replace(/[\u0000-\u001f\u007f<>]/g,'').trim().slice(0,10)||'플레이어';
 let noteHold=0;
 function lbNote(msg,kind){ noteHold=performance.now()+2600; note('lbNote',msg,kind,true); }
@@ -1123,8 +1186,8 @@ function netReset(){ NSID++; clearInterval(NET.pingT); const c=NET.conn,p=NET.pe
   clearTimeout(NET.recoverT); Object.assign(NET,{peer:null,conn:null,isHost:false,code:null,lastRecv:0,rtt:null,pend:null,pingT:null,recoverT:null,confirmed:false,connT:0,wasOnline:false}); L=null; keepAwake(false);
   try{ c&&c.close(); }catch(_){} try{ p&&p.destroy(); }catch(_){} setBusy(false); }
 function setBusy(b){ $('createBtn').disabled=b; $('joinBtn').disabled=b; }
-function netErrMsg(e){ const t=e&&e.type; if(t==='browser-incompatible') return '이 브라우저는 온라인 대결을 지원하지 않아요. 크롬이나 사파리 최신 버전으로 열어 주세요.';
-  if(t==='peer-unavailable') return '그 코드의 방을 찾지 못했어요. 코드를 다시 확인해 주세요.'; return '연결 서버에 닿지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'; }
+function netErrMsg(e){ const t=e&&e.type; if(t==='browser-incompatible') return '온라인 연결 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 페이지를 새로 고쳐 주세요.';
+  if(t==='peer-unavailable') return '그 코드의 방을 찾지 못했어요. 코드를 다시 확인해 주세요.'; return '중계 서버에 접속하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. 학교나 회사 와이파이라면 모바일 데이터로 바꿔 보세요.'; }
 function sanitizeCfg(c){ c=c||{}; const pick=(v,list,d)=>list.includes(v)?v:d;
   return {orbs:pick(c.orbs,[5,8,10,12,15],10),seekMul:pick(c.seekMul,[0.9,0.95,1],0.95),collect:pick(c.collect,[1.5,2,3],2),theme:pick(c.theme,['day','sunset','night'],'sunset'),
     zone:c.zone!==false,tp:c.tp!==false,radar:c.radar!==false,swap:c.swap!==false}; }
@@ -1135,10 +1198,7 @@ function bindConn(c,sid){
   c.on('close',()=>{ if(sid!==NSID||NET.conn!==c) return; onConnLost(); });
   c.on('error',()=>{});
 }
-const PEER_OPTS={debug:0,config:{iceServers:[
-  {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302']},
-  {urls:'stun:stun.cloudflare.com:3478'},
-  {urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}};
+const PEER_OPTS={};
 const NET_FATAL=['browser-incompatible','ssl-unavailable','invalid-key','invalid-id'];
 const isInApp=/KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent||'');
 let wakeLock=null;
@@ -1157,9 +1217,10 @@ function createRoom(){
   const nm=cleanName($('nick').value); prefs.name=nm; LS.set('name',nm);
   if(typeof Peer!=='function'){ note('onNote','온라인 연결 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 페이지를 새로 고쳐 주세요.','err'); return; }
   netReset(); setBusy(true); note('onNote','방을 만드는 중이에요…'); const sid=NSID; let tries=0;
-  const attempt=()=>{ const code=genCode();
+  const attempt=()=>{ const code=genCode(tries%BROKERS.length);
+    if(tries>0) note('onNote',`다른 연결 서버로 방을 만드는 중이에요 (${tries+1}번째)…`);
     hostPeer(code,sid,true,(err)=>{ if(sid!==NSID) return;
-      if(err&&err.type==='unavailable-id'&&++tries<4) attempt(); else { netReset(); note('onNote',netErrMsg(err),'err'); } }); };
+      if(err&&err.type!=='browser-incompatible'&&++tries<6) attempt(); else { netReset(); note('onNote',netErrMsg(err),'err'); } }); };
   attempt();
 }
 function hostPeer(code,sid,first,onFirstFail){
@@ -1209,14 +1270,14 @@ function joinRoom(){
     note('onNote',kind==='nohost'?`방장을 찾는 중이에요 (${attempt}번째 시도). 방장이 게임 화면을 켜 두고 있어야 들어갈 수 있어요. 방장이 화면으로 돌아오면 자동으로 들어가요.`
       :`방장과 직접 연결이 잘 안 돼서 다시 시도하는 중이에요 (${attempt}번째 시도)…`);
     clearTimeout(retryT); retryT=setTimeout(tryConnect,2500); };
-  const p=new Peer(PEER_OPTS); NET.peer=p;
+  const p=new Peer({broker:brokerOf(code)}); NET.peer=p;
   const srvTo=setTimeout(()=>{ if(!p.open&&!done) fail('server',{type:'server-timeout'}); },15000);
   function tryConnect(){
     if(done||sid!==NSID) return; if(p.destroyed){ fail('server',{type:'socket-closed'}); return; }
     if(p.disconnected){ try{ p.reconnect(); }catch(_){} retryT=setTimeout(tryConnect,2000); return; }
     attempt++; if(attempt===1) note('onNote','방을 찾았는지 확인하는 중이에요…');
     if(NET.conn){ const old=NET.conn; NET.conn=null; try{ old.close(); }catch(_){} }
-    const c=p.connect(hostId,{reliable:true,serialization:'json'}); NET.conn=c; bindConn(c,sid);
+    const c=p.connect(hostId); NET.conn=c; bindConn(c,sid);
     const iceWatch=setInterval(()=>{ const pc=c.peerConnection; if(pc){ iceState=pc.iceConnectionState||iceState; if(!c.open&&attempt>=1) note('onNote',`방장과 연결을 맺는 중이에요 (${attempt}번째 시도)…`); } },1000);
     const t=setTimeout(()=>{ clearInterval(iceWatch); if(!c.open&&NET.conn===c&&!done){ NET.conn=null; try{ c.close(); }catch(_){} retry('ice'); } },14000);
     c.on('open',()=>{ clearInterval(iceWatch); clearTimeout(t); if(sid!==NSID||done) return; NET.lastRecv=performance.now(); note('onNote','방에 들어가는 중이에요…');
@@ -1235,9 +1296,9 @@ function joinRoom(){
 function joinFailMsg(kind,e,ice){
   const code=(e&&e.type)||kind;
   if(kind==='nohost') return '방을 찾지 못했어요. 코드가 맞는지, 그리고 방장이 게임 화면을 켜 둔 상태인지 확인해 주세요. 방장이 링크를 보내느라 다른 앱에 가 있으면 방이 잠시 닫혀요. (오류: 방 없음)';
-  if(kind==='ice'||kind==='closed') return `방은 찾았지만 두 기기를 직접 연결하지 못했어요. 회사나 학교 와이파이처럼 막힌 네트워크일 수 있어요. 한 명이 와이파이를 끄고 모바일 데이터로 다시 해 보세요. (오류: 직접 연결 실패${ice?', '+ice:''})`;
+  if(kind==='ice'||kind==='closed') return '방장과 연결이 자꾸 끊겨요. 인터넷 상태를 확인하고 다시 시도해 주세요. (오류: 연결 끊김)';
   if(kind==='browser') return '이 브라우저에서는 온라인 대결이 안 돼요. 카카오톡 등 앱 안에서 열었다면 크롬이나 사파리로 열어 주세요. (오류: '+code+')';
-  return '연결 서버에 접속하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. (오류: '+code+')';
+  return '중계 서버에 접속하지 못했어요. 인터넷 연결을 확인해 주세요. 학교나 회사 와이파이라면 모바일 데이터로 바꿔서 다시 해 보세요. (오류: '+code+')';
 }
 function enterLobby(){
   S.mode='pvp'; S.phase='lobby'; S.mid=null; setBusy(false); showHud(false); showOverlay('lobby'); buildCfgGrid(); renderLobby(); keepAwake(true);
@@ -1438,9 +1499,9 @@ addEventListener('resize',resize); resize();
 let lastT=performance.now(), bob=0, countLast=0;
 function pvpTick(dt){
   const me=S.me, o=S.opp;
-  NET.sendT-=dt; if(NET.sendT<=0){ NET.sendT=0.066;
+  NET.sendT-=dt; if(NET.sendT<=0){ NET.sendT=0.09;
     netGame({t:'s',x:+me.x.toFixed(2),y:+me.y.toFixed(2),z:+me.z.toFixed(2),yaw:+me.yaw.toFixed(3),mv:me.moving?1:0,ns:me.noisy?1:0,sl:(me.slideT>0||me.crouch)?1:0,air:me.gr?0:1}); }
-  const k=Math.min(1,dt*12); o.x+=(o.tx-o.x)*k; o.y+=(o.ty-o.y)*k; o.z+=(o.tz-o.z)*k;
+  const k=Math.min(1,dt*10); o.x+=(o.tx-o.x)*k; o.y+=(o.ty-o.y)*k; o.z+=(o.tz-o.z)*k;
   let dy=o.tyaw-o.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.yaw+=dy*k;
   if(S.phase==='play'){
     if(S.role==='seeker'&&canCatch(CATCH_R)) endGame('seeker','catch');
